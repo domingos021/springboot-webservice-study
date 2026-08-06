@@ -11,3 +11,26 @@ public class CursoApplication {
 	}
 
 }
+
+	/*
+	Cliente (Frontend, Mobile, outro sistema)
+				  |
+				  | HTTP / JSON
+				  ↓
+		  Spring Boot (Backend)
+				  |
+				  ↓
+		 Camadas da aplicação
+				  |
+	   ┌──────────┼──────────┐
+	   ↓          ↓          ↓
+	Controller  Service   Repository
+						   |
+						   ↓
+					  JPA/Hibernate
+						   |
+						   ↓
+					  PostgreSQL
+	 */
+
+
