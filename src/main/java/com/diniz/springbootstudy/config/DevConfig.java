@@ -7,67 +7,109 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
 /* ============================================================================================
- * MOTIVAÇÃO E OBJETIVO DA CRIAÇÃO DESTA CLASSE (DevConfig):
+ * MOTIVATION AND PURPOSE OF THIS CLASS (DevConfig / H2ConsoleConfig):
  * ============================================================================================
  *
- * 1. SUPORTE AO SPRING BOOT 3+ E JAKARTA EE:
- *    A partir do Spring Boot 3.x, o ecossistema Java migrou do antigo pacote 'javax.servlet'
- *    para o novo 'jakarta.servlet' (compatível com Tomcat 10+). A classe antiga do console H2
- *    (org.h2.server.web.WebServlet) usava 'javax' e gera erros em versões recentes.
- *    Esta classe registra explicitamente a classe 'JakartaWebServlet', resolvendo esse erro.
+ * 1. SPRING BOOT 3+ AND JAKARTA EE SUPPORT:
+ *    Starting with Spring Boot 3.x, the Java ecosystem migrated from the legacy 'javax.servlet'
+ *    package to the new 'jakarta.servlet' package (compatible with Tomcat 10+). The legacy H2
+ *    console class (org.h2.server.web.WebServlet) relied on 'javax' and causes runtime errors
+ *    in recent versions. This configuration explicitly registers 'JakartaWebServlet', fixing that issue.
  *
- * 2. SEGURANÇA E ISOLAMENTO DE AMBIENTE:
- *    O H2 Console é uma ferramenta administrativa que permite executar scripts SQL no banco.
- *    Ao vincular esta classe exclusivamente ao perfil 'dev', garantimos que a rota '/h2-console'
- *    só estará acessível no ambiente local de desenvolvimento, ficando desativada em Produção.
+ * 2. ENVIRONMENT ISOLATION & SECURITY:
+ *    The H2 Console is an administrative web interface that allows raw SQL execution against the DB.
+ *    By binding this configuration strictly to the 'dev' and 'test' profiles, we ensure the
+ *    '/h2-console' endpoint is only accessible during local development and testing, keeping it
+ *    disabled in Production environments.
  *
  * ============================================================================================
  */
 
 /*
- * PASSO 1: Declarar a classe como uma classe de configuração do Spring.
- * O Spring varre o projeto na inicialização e lê esta classe para registrar Beans.
+ * STEP 1: Declare this class as a Spring configuration class.
+ * Spring scans the project on startup and reads this class to register managed Beans.
  */
 @Configuration
 
 /*
- * PASSO 2: Restringir a execução desta classe apenas ao perfil "dev".
- * Se 'spring.profiles.active=dev' estiver configurado, o Spring carrega esta classe.
- * Se o perfil ativo for 'prod' ou outro, esta classe é completamente ignorada.
+ * STEP 2: Restrict execution of this configuration to "dev" and "test" profiles.
+ * Allows the H2 web console to run during local development as well as during automated
+ * test suite execution with the in-memory H2 database.
  */
-@Profile("dev")
+@Profile({"dev", "test"})
 public class DevConfig {
 
     /*
-     * PASSO 3: Definir o método de fábrica do Bean do Servlet.
-     * A anotação @Bean indica que o retorno deste método deve ser gerenciado pelo container Spring.
-     * Retornamos um 'ServletRegistrationBean', que é a estrutura do Spring Boot para registrar
-     * Servlets diretamente no servidor web embutido (ex: Tomcat).
+     * STEP 3: Define the Servlet Bean factory method.
+     * The @Bean annotation indicates that the return value of this method will be managed by the Spring container.
+     * We return a 'ServletRegistrationBean', which is Spring Boot's way of registering custom Servlets
+     * directly into the embedded web server (e.g., Tomcat).
      */
     @Bean
     public ServletRegistrationBean<JakartaWebServlet> h2servletRegistration() {
 
         /*
-         * PASSO 4: Instanciar o Servlet compatível com Jakarta EE e mapear o caminho URL.
-         * - 'new JakartaWebServlet()': Instancia o Servlet moderno do H2.
-         * - '"/h2-console/*"': Define o endpoint web onde o painel do H2 ficará acessível no navegador.
+         * STEP 4: Instantiate the Jakarta EE compatible Servlet.
          */
         ServletRegistrationBean<JakartaWebServlet> registration =
-                new ServletRegistrationBean<>(new JakartaWebServlet(), "/h2-console/*");
+                new ServletRegistrationBean<>(new JakartaWebServlet());
 
         /*
-         * PASSO 5: Nomear o registro do Servlet.
-         * Atribui um identificador interno ("H2Console") para o Servlet no contexto do Spring.
+         * STEP 5: Map both "/h2-console" and "/h2-console/*" URL routes.
+         * Mapping both variants prevents 404 errors when accessing the console without a trailing slash.
+         */
+        registration.addUrlMappings("/h2-console", "/h2-console/*");
+
+        /*
+         * STEP 6: Assign a registration name for the Servlet.
+         * Gives the Servlet an internal identifier ("H2Console") within the Spring application context.
          */
         registration.setName("H2Console");
 
         /*
-         * PASSO 6: Retornar o Bean configurado para ser registrado no container Web.
+         * STEP 7: Return the fully configured Bean to be registered into the Web container.
          */
         return registration;
     }
 }
 
-//http://localhost:8080/h2-console/
-//mvnw clean spring-boot:run (alterações grandees varre todo lixo)
-//mvnw spring-boot:run (no dia a dia)
+// Access URL: http://localhost:8080/h2-console
+// Useful commands:
+// ./mvnw clean spring-boot:run (recompiles project from scratch, cleaning the target directory)
+// ./mvnw spring-boot:run (standard daily execution command)
+
+/*
+ Spring Boot Startup Execution Flow:
+
+        Spring Boot Starts
+                │
+                ▼
+      Finds @Configuration
+                │
+                ▼
+         Finds DevConfig
+                │
+                ▼
+ Is "dev" or "test" profile active?
+                │
+               Yes
+                │
+                ▼
+     Executes the @Bean method
+                │
+                ▼
+     new JakartaWebServlet()
+                │
+                ▼
+    ServletRegistrationBean
+                │
+                ▼
+            Maps routes:
+     /h2-console and /h2-console/*
+                │
+                ▼
+ Tomcat registers the Servlet
+                │
+                ▼
+  http://localhost:8080/h2-console
+ */
