@@ -41,3 +41,61 @@ public class UserResource {
         return ResponseEntity.ok().body(u);
     }
 }
+
+/*
+mvn spring-boot:run
+        │
+        ▼
+spring-boot-maven-plugin
+        │
+        ▼
+Executa:
+java -jar ...
+        │
+        ▼
+main()
+CursoApplication.main()
+        │
+        ▼
+SpringApplication.run()
+        │
+        ▼
+SpringApplication
+        │
+        ▼
+Cria o Environment
+(application.properties / profiles)
+        │
+        ▼
+Ativa o profile "test"
+        │
+        ▼
+Cria o ApplicationContext
+        │
+        ▼
+Executa AutoConfiguration
+(@EnableAutoConfiguration)
+        │
+        ▼
+Faz Component Scan
+(@ComponentScan)
+        │
+        ▼
+Procura:
+@RestController
+@Controller
+@Service
+@Repository
+@Component
+@Configuration
+@Entity
+        │
+        ▼
+Cria todos os Beans
+        │
+        ▼
+Configura Spring MVC
+        │
+        ▼
+Inicializa Tomcat
+ */

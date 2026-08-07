@@ -37,11 +37,10 @@
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
 		</dependency>
 
-		<!-- Driver do Banco H2 (Banco de dados relacional em memória) -->
+		<!-- Driver do Banco H2 (Sem escopo runtime para permitir importar WebServlet no código) -->
 		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
-			<scope>runtime</scope>
 		</dependency>
 
 		<!-- Driver do Banco PostgreSQL (Driver de conexão para o PostgreSQL) -->
