@@ -1,13 +1,20 @@
 package com.diniz.springbootstudy.controllers;
 
 import com.diniz.springbootstudy.dto.UserDTO;
+import com.diniz.springbootstudy.dto.UserInsertDTO;
 import com.diniz.springbootstudy.services.UserService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.net.URI;
 import java.util.List;
 
 // ============================================================================
@@ -37,6 +44,9 @@ import java.util.List;
  * - Run application via terminal: mvn spring-boot:run
  * - Test endpoint (Find All): GET <a href="http://localhost:8080/users">all</a>
  * - Test endpoint (Find by ID): GET <a href="http://localhost:8080/users/1">searching by id</a>
+ * - Test endpoint (Insert): POST <a href="http://localhost:8080/users">creating a new user</a>
+ * - Test endpoint (Update): PUT <a href="http://localhost:8080/users/1">updating an existing user</a>
+ * - Test endpoint (Delete): DELETE <a href="http://localhost:8080/users/1">deleting user by id</a>
  */
 @RestController // Semantic annotation indicating this class handles HTTP requests and produces JSON/XML responses.
 @RequestMapping(value = "/users")
@@ -78,6 +88,7 @@ public class UserController {
     }
 
     // ========================================================================
+    //mvn spring-boot:run
     // ENDPOINT: Find All Users
     // HTTP Method: GET
     // URL Example: http://localhost:8080/users
@@ -105,12 +116,75 @@ public class UserController {
     // URL Example: http://localhost:8080/users/1
     // ========================================================================
     @GetMapping(value = "/{id}")
-    public ResponseEntity<UserDTO> findById(@PathVariable long id) {
+    public ResponseEntity<UserDTO> findById(@PathVariable Long id) {
         /*
          * Delegates lookup to Service layer, which converts the found User entity into a UserDTO.
          */
         UserDTO dto = service.findById(id);
         return ResponseEntity.ok().body(dto);
+    }
+
+    // ========================================================================
+    // ENDPOINT: Insert New User
+    // HTTP Method: POST
+    // URL Example: http://localhost:8080/users
+    // Status Code: 201 Created (with 'Location' header pointing to the new resource)
+    // ========================================================================
+    @PostMapping
+    public ResponseEntity<UserDTO> insert(@RequestBody UserInsertDTO dto) {
+        /*
+         * @RequestBody:
+         * Deserializes the incoming JSON body payload directly into the UserInsertDTO object.
+         *
+         * ServletUriComponentsBuilder:
+         * Standard Spring helper to generate the HTTP 'Location' header containing the URI
+         * of the newly created resource (e.g., http://localhost:8080/users/3).
+         */
+        UserDTO newDto = service.insert(dto);
+        URI uri = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(newDto.getId())
+                .toUri();
+
+        /*
+         * ResponseEntity.created(uri) generates HTTP Status 201 (Created)
+         * with the Location header and returns the filtered UserDTO in the response body.
+         */
+        return ResponseEntity.created(uri).body(newDto);
+    }
+
+    // ========================================================================
+    // ENDPOINT: Update Existing User
+    // HTTP Method: PUT
+    // URL Example: http://localhost:8080/users/1
+    // Status Code: 200 OK
+    // ========================================================================
+    @PutMapping(value = "/{id}")
+    public ResponseEntity<UserDTO> update(@PathVariable Long id, @RequestBody UserDTO dto) {
+        /*
+         * Replaces or updates fields of an existing user resource identified by 'id'.
+         * Returns HTTP 200 (OK) with the updated UserDTO payload.
+         */
+        UserDTO updatedDto = service.update(id, dto);
+        return ResponseEntity.ok().body(updatedDto);
+    }
+
+    // ========================================================================
+    // ENDPOINT: Delete User by ID
+    // HTTP Method: DELETE
+    // URL Example: http://localhost:8080/users/1
+    // Status Code: 24 No Content
+    // ========================================================================
+    @DeleteMapping(value = "/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        /*
+         * Removes the user resource identified by 'id' from the database.
+         * ResponseEntity.noContent() returns HTTP Status 204 (No Content)
+         * which is the RESTful standard when a resource is successfully deleted
+         * and no response body is returned.
+         */
+        service.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }
 
@@ -158,31 +232,22 @@ public class UserController {
          │
          ├──► UserService
          │        │
-         │        └── receives UserRepository
+         │        └── receives UserRepository & PasswordEncoder
          │
          └──► UserController
                   │
                   └── receives UserService
 
  ============================================================================
- REQUEST EXECUTION & RESPONSE FLOW
+ REQUEST EXECUTION & RESPONSE FLOW (CRUD VERBS)
  ============================================================================
 
- HTTP Request
-       │
-       ▼
- UserController (HTTP handling & status codes)
-       │
-       ▼
- UserService    (Business rules, entity-to-DTO conversion)
-       │
-       ▼
- UserRepository (ORM / Database query execution)
-       │
-       ▼
- Database
-       │
-       ▲
- Response travels back up through the same layers as DTOs to the client.
+ HTTP Method   Endpoint       Controller Method    Service Method    HTTP Status Code
+ -----------   ------------   -----------------    --------------    ----------------
+ GET           /users         findAll()            findAll()         200 OK
+ GET           /users/{id}    findById(id)         findById(id)      200 OK (or 404)
+ POST          /users         insert(dto)          insert(dto)       201 Created
+ PUT           /users/{id}    update(id, dto)      update(id, dto)   200 OK (or 404)
+ DELETE        /users/{id}    delete(id)           delete(id)        204 No Content
  ============================================================================
 */
