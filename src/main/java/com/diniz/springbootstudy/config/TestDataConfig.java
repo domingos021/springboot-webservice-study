@@ -2,6 +2,7 @@ package com.diniz.springbootstudy.config;
 
 import com.diniz.springbootstudy.entities.Order;
 import com.diniz.springbootstudy.entities.User;
+import com.diniz.springbootstudy.entities.enums.OrderStatus;
 import com.diniz.springbootstudy.repositories.OrderRepository;
 import com.diniz.springbootstudy.repositories.UserRepository;
 import org.springframework.boot.CommandLineRunner;
@@ -27,11 +28,11 @@ import java.util.Arrays;
 /**
  * Spring configuration class dedicated to the test environment setup
  * and database seeding.
- *
+ * <p>
  * Responsibilities:
  * - Configures settings specific to the "test" Spring profile.
- // * - Executes database seeding via {@link CommandLineRunner} at application startup.
- // * - Isolates test data preparation logic from production environments.
+ * // * - Executes database seeding via {@link CommandLineRunner} at application startup.
+ * // * - Isolates test data preparation logic from production environments.
  */
 @Configuration
 @Profile("test")
@@ -143,24 +144,28 @@ public class TestDataConfig implements CommandLineRunner {
         Order o1 = new Order(
                 null,
                 Instant.parse("2026-08-13T10:30:00Z"),
-                u1 //this order is associated to the client u1
+                OrderStatus.PAID,
+                u1 // this order is associated to the client u1
         );
 
         Order o2 = new Order(
                 null,
                 Instant.parse("2026-08-13T11:45:00Z"),
+                OrderStatus.WAITING_PAYMENT,
                 u2
         );
 
         Order o3 = new Order(
                 null,
                 Instant.parse("2026-08-13T14:20:00Z"),
+                OrderStatus.PAID,
                 u3
         );
 
         Order o4 = new Order(
                 null,
                 Instant.parse("2026-08-13T16:00:00Z"),
+                OrderStatus.DELIVERED,
                 u4
         );
 
