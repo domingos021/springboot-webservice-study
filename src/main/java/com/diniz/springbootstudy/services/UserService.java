@@ -116,7 +116,7 @@ public class UserService {
          * Returns a clean UserDTO (without exposing the password hash in the response).
          */
         User entity = new User();
-        entity.setName(dto.getName());
+        entity.setName(dto.getName()); // Updates the entity name field with the incoming DTO data
         entity.setEmail(dto.getEmail());
         entity.setPhone(dto.getPhone());
 

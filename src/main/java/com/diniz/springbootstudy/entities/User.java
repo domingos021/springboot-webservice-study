@@ -1,5 +1,6 @@
 package com.diniz.springbootstudy.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -32,6 +33,8 @@ public class User implements Serializable {
     private String name;
     private String email;
     private String phone;
+
+    @JsonIgnore // <-- Impede a exibição da senha nas respostas JSON
     private String password;
 
     /*
@@ -82,15 +85,17 @@ public class User implements Serializable {
      * *
      * *http://localhost:8080/h2-console
      */
+    @JsonIgnore // <-- Bloqueia a referência circular no GET /orders
     @OneToMany(mappedBy = "client")
     private List<Order> orders = new ArrayList<>();
 
     public User() {}
 
-    public User(Long id, String email, String name, String phone, String password) {
+    // Construtor corrigido: name vem antes de email
+    public User(Long id, String name, String email, String phone, String password) {
         this.id = id;
-        this.email = email;
         this.name = name;
+        this.email = email;
         this.phone = phone;
         this.password = password;
     }

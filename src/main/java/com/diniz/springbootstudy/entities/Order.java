@@ -1,5 +1,7 @@
 package com.diniz.springbootstudy.entities;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonRootName;
 import jakarta.persistence.*;
 
 import java.io.Serial;
@@ -9,6 +11,7 @@ import java.util.Objects;
 
 @Entity
 @Table(name = "tb_order") // Table´s name
+@JsonRootName(value = "order") // <-- Define o nome da chave pai
 public class Order implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
@@ -17,6 +20,15 @@ public class Order implements Serializable {
     // Delegates ID generation to the database auto-increment feature
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    // Defines how the Instant value is serialized/deserialized in JSON.
+    // The date is formatted as ISO-8601 UTC format: yyyy-MM-dd'T'HH:mm:ss'Z'
+    // Example: "2026-08-14T16:30:00Z"
+    @JsonFormat(
+            shape = JsonFormat.Shape.STRING,
+            pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'",
+            timezone = "GMT"
+    )
     private Instant moment;
 
     /*
