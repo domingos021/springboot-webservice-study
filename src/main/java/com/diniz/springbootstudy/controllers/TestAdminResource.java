@@ -1,4 +1,4 @@
-package com.diniz.springbootstudy.resources;
+package com.diniz.springbootstudy.controllers;
 
 
 import com.diniz.springbootstudy.services.reset.DatabaseResetService;
@@ -19,6 +19,7 @@ public class TestAdminResource {
         this.databaseResetService = databaseResetService;
     }
 
+    //DELETE http://localhost:8080/test/reset
     @DeleteMapping(value = "/reset") // <-- Exige o verbo DELETE no Postman
     public ResponseEntity<String> resetDatabase() throws Exception {
         databaseResetService.resetDatabase();

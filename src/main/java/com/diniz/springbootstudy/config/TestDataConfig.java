@@ -1,9 +1,11 @@
 package com.diniz.springbootstudy.config;
 
 import com.diniz.springbootstudy.entities.Order;
+import com.diniz.springbootstudy.entities.Order01;
 import com.diniz.springbootstudy.entities.User;
 import com.diniz.springbootstudy.entities.enums.OrderStatus;
 import com.diniz.springbootstudy.repositories.OrderRepository;
+import com.diniz.springbootstudy.repositories.OrderRepository01;
 import com.diniz.springbootstudy.repositories.UserRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Configuration;
@@ -54,13 +56,16 @@ public class TestDataConfig implements CommandLineRunner {
     // =========================================================
     private final UserRepository userRepository;
     private final OrderRepository orderRepository;
+    private final OrderRepository01 orderRepository01;
 
     public TestDataConfig(
             UserRepository userRepository,
-            OrderRepository orderRepository) {
+            OrderRepository orderRepository,
+            OrderRepository01 orderRepository01) {
 
         this.userRepository = userRepository;
         this.orderRepository = orderRepository;
+        this.orderRepository01 = orderRepository01;
     }
 
     // ========================================================================
@@ -112,8 +117,40 @@ public class TestDataConfig implements CommandLineRunner {
                 "1992"
         );
 
+        User u5 = new User(
+                null,
+                "João Pereira",
+                "Joao@yahoo.com",
+                "61984615329",
+                "1987"
+        );
+
+        User u6 = new User(
+                null,
+                "Fernanda Costa",
+                "Fernanda@yahoo.com",
+                "61984615330",
+                "1995"
+        );
+
+        User u7 = new User(
+                null,
+                "Ricardo Almeida",
+                "Ricardo@yahoo.com",
+                "61984615331",
+                "1983"
+        );
+
+        User u8 = new User(
+                null,
+                "Juliana Martins",
+                "Juliana@yahoo.com",
+                "61984615332",
+                "1991"
+        );
+
         // Saving mock users into the database
-        userRepository.saveAll(Arrays.asList(u1, u2, u3, u4));
+        userRepository.saveAll(Arrays.asList(u1, u2, u3, u4,u5,u6,u7,u8));
 
         /*
          * Instant.now() captures the current date and time from the system clock.
@@ -171,6 +208,40 @@ public class TestDataConfig implements CommandLineRunner {
 
         // Saving mock orders into the database
         orderRepository.saveAll(Arrays.asList(o1, o2, o3, o4));
+
+        // ====================================================================
+// CREATE ORDERS 01
+// ====================================================================
+
+        Order01 ord1 = new Order01(
+                null,
+                Instant.parse("2026-08-13T10:30:00Z"),
+                OrderStatus.WAITING_PAYMENT,
+                u5
+        );
+
+        Order01 ord2 = new Order01(
+                null,
+                Instant.parse("2026-08-14T14:45:00Z"),
+                OrderStatus.PAID,
+                u6
+        );
+
+        Order01 ord3 = new Order01(
+                null,
+                Instant.parse("2026-08-15T09:15:00Z"),
+                OrderStatus.SHIPPED,
+                u7
+        );
+
+        Order01 ord4 = new Order01(
+                null,
+                Instant.parse("2026-08-16T18:20:00Z"),
+                OrderStatus.DELIVERED,
+                u8
+        );
+
+        orderRepository01.saveAll(Arrays.asList(ord1, ord2, ord3, ord4));
     }
 }
 

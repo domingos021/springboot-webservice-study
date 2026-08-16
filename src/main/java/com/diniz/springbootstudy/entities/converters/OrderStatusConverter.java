@@ -12,6 +12,11 @@ import jakarta.persistence.Converter;
  */
 @Converter(autoApply = true)
 public class OrderStatusConverter implements AttributeConverter<OrderStatus, Integer> {
+     /*
+     * AttributeConverter&lt;X, Y&gt; takes two types:
+     * X → entity type (Java)
+      * Y → type stored in the database
+     */
 
     /**
      * Mapping: Java (Enum) ---> Database (Integer)
