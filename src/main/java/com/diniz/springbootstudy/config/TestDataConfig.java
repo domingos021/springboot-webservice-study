@@ -1,9 +1,11 @@
 package com.diniz.springbootstudy.config;
 
+import com.diniz.springbootstudy.entities.Category;
 import com.diniz.springbootstudy.entities.Order;
 import com.diniz.springbootstudy.entities.Order01;
 import com.diniz.springbootstudy.entities.User;
 import com.diniz.springbootstudy.entities.enums.OrderStatus;
+import com.diniz.springbootstudy.repositories.CategoryRepository;
 import com.diniz.springbootstudy.repositories.OrderRepository;
 import com.diniz.springbootstudy.repositories.OrderRepository01;
 import com.diniz.springbootstudy.repositories.UserRepository;
@@ -57,15 +59,19 @@ public class TestDataConfig implements CommandLineRunner {
     private final UserRepository userRepository;
     private final OrderRepository orderRepository;
     private final OrderRepository01 orderRepository01;
+    private final CategoryRepository categoryRepository;
 
     public TestDataConfig(
             UserRepository userRepository,
             OrderRepository orderRepository,
-            OrderRepository01 orderRepository01) {
+            OrderRepository01 orderRepository01,
+            CategoryRepository categoryRepository
+    ) {
 
         this.userRepository = userRepository;
         this.orderRepository = orderRepository;
         this.orderRepository01 = orderRepository01;
+        this.categoryRepository = categoryRepository;
     }
 
     // ========================================================================
@@ -80,6 +86,17 @@ public class TestDataConfig implements CommandLineRunner {
          * All code inside run() executes automatically upon application startup
          * when the "test" profile is active.
          */
+
+        // ====================================================================
+        // CATEGORY IS AN INDEPENDENT CLASS
+        // ====================================================================
+
+        Category cat1 = new Category(null,"Library");
+        Category cat2 = new Category(null,"Electronic");
+        Category cat3 = new Category(null,"Computer");
+
+        // Saving mock users into the database
+        categoryRepository.saveAll(Arrays.asList(cat1,cat2,cat3));
 
         // ====================================================================
         // CREATE USERS
@@ -242,6 +259,8 @@ public class TestDataConfig implements CommandLineRunner {
         );
 
         orderRepository01.saveAll(Arrays.asList(ord1, ord2, ord3, ord4));
+
+
     }
 }
 
