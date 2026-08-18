@@ -8,7 +8,9 @@ import jakarta.persistence.*;
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Order01 Entity.
@@ -46,17 +48,18 @@ import java.util.Objects;
  * RELATIONSHIP DIAGRAM (UML)
  * =======================================================================================
  *
- *     +----------------+           +----------------+
- *     |     User       | 1       N |    Order01     |
- *     +----------------+-----------+----------------+
- *     | id (PK)        | <---------| client_id (FK) |
- *     | name           |           | id (PK)        |
- *     | email          |           | moment         |
- *     | phone          |           | orderStatus    |
- *     +----------------+           +----------------+
+ *     +----------------+           +----------------+           +----------------+
+ *     |     User       | 1       N |    Order01     | 1       N |   OrderItem    |
+ *     +----------------+-----------+----------------+-----------+----------------+
+ *     | id (PK)        | <---------| client_id (FK) | <---------| order_id (PK)  |
+ *     | name           |           | id (PK)        |           | product_id(PK) |
+ *     | email          |           | moment         |           | quantity       |
+ *     | phone          |           | orderStatus    |           | price          |
+ *     +----------------+           +----------------+           +----------------+
  *
  *   Many Orders (Order01) belong to the same Client (User).
  *   Each Order (Order01) belongs to only one Client (User).
+ *   Each Order (Order01) can have many OrderItems.
  *
  * =======================================================================================
  */
@@ -101,6 +104,13 @@ public class Order01 implements Serializable {
     @ManyToOne
     @JoinColumn(name = "client_id")
     private User client;
+
+    /**
+     * Set of items associated with this order.
+     * 'id.order' references the 'order' field inside the 'OrderItemPk' composite key.
+     */
+    @OneToMany(mappedBy = "id.order")
+    private Set<OrderItem> items = new HashSet<>();
 
     /**
      * Default no-args constructor required by JPA/Hibernate.
@@ -157,6 +167,22 @@ public class Order01 implements Serializable {
 
     public void setClient(User client) {
         this.client = client;
+    }
+
+    public Set<OrderItem> getItems() {
+        return items;
+    }
+
+    /**
+     * Calculates the total value of the order by summing the subtotal of each item.
+     * Jackson automatically includes this field as 'total' in the JSON response.
+     */
+    public Double getTotal() {
+        double sum = 0.0;
+        for (OrderItem item : items) {
+            sum += item.getSubTotal();
+        }
+        return sum;
     }
 
     // =========================================================================
