@@ -1,5 +1,6 @@
 package com.diniz.springbootstudy.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import java.io.Serial;
@@ -58,6 +59,7 @@ public class Category implements Serializable {
      * using methods like add() and remove().
      */
     //Relational mapping object of jpa
+    @JsonIgnore // blocks the serialization of the products collection to avoid infinite recursion during JSON serialization
     @ManyToMany(mappedBy = "categories")
     private Set<Product> products = new HashSet<>();
 

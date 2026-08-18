@@ -154,7 +154,13 @@ public class TestDataConfig implements CommandLineRunner {
         productRepository.saveAll(Arrays.asList(p1, p2, p3, p4, p5));
 
         // Associating products with categories (Many-to-Many relationship)
-        p1.getCategories().add(cat1);
+        /*
+         * We access the Product object (p1).
+         * The getCategories() method returns the Set<Category> associated with the product.
+         * Then, we add the category cat1 to that collection, creating the relationship
+         * between product p1 and category cat1.
+         */
+        p1.getCategories().add(cat1); // association between objects (products and categories)
         p2.getCategories().add(cat2);
         p2.getCategories().add(cat3);
         p3.getCategories().add(cat3);
