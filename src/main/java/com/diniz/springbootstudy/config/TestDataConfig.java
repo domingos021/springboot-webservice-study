@@ -3,15 +3,18 @@ package com.diniz.springbootstudy.config;
 import com.diniz.springbootstudy.entities.Category;
 import com.diniz.springbootstudy.entities.Order;
 import com.diniz.springbootstudy.entities.Order01;
+import com.diniz.springbootstudy.entities.Product;
 import com.diniz.springbootstudy.entities.User;
 import com.diniz.springbootstudy.entities.enums.OrderStatus;
 import com.diniz.springbootstudy.repositories.CategoryRepository;
 import com.diniz.springbootstudy.repositories.OrderRepository;
 import com.diniz.springbootstudy.repositories.OrderRepository01;
+import com.diniz.springbootstudy.repositories.ProductRepository;
 import com.diniz.springbootstudy.repositories.UserRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.Instant;
 import java.util.Arrays;
@@ -60,18 +63,24 @@ public class TestDataConfig implements CommandLineRunner {
     private final OrderRepository orderRepository;
     private final OrderRepository01 orderRepository01;
     private final CategoryRepository categoryRepository;
+    private final ProductRepository productRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public TestDataConfig(
             UserRepository userRepository,
             OrderRepository orderRepository,
             OrderRepository01 orderRepository01,
-            CategoryRepository categoryRepository
+            CategoryRepository categoryRepository,
+            ProductRepository productRepository,
+            PasswordEncoder passwordEncoder
     ) {
 
         this.userRepository = userRepository;
         this.orderRepository = orderRepository;
         this.orderRepository01 = orderRepository01;
         this.categoryRepository = categoryRepository;
+        this.productRepository = productRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     // ========================================================================
@@ -91,12 +100,69 @@ public class TestDataConfig implements CommandLineRunner {
         // CATEGORY IS AN INDEPENDENT CLASS
         // ====================================================================
 
-        Category cat1 = new Category(null,"Library");
-        Category cat2 = new Category(null,"Electronic");
-        Category cat3 = new Category(null,"Computer");
+        Category cat1 = new Category(null, "Library");
+        Category cat2 = new Category(null, "Electronic");
+        Category cat3 = new Category(null, "Computer");
 
-        // Saving mock users into the database
-        categoryRepository.saveAll(Arrays.asList(cat1,cat2,cat3));
+        // Saving mock categories into the database
+        categoryRepository.saveAll(Arrays.asList(cat1, cat2, cat3));
+
+        // ====================================================================
+        // CREATE PRODUCTS & ASSOCIATE WITH CATEGORIES
+        // ====================================================================
+
+        Product p1 = new Product(
+                null,
+                "The Lord of the Rings",
+                "An epic fantasy novel written by J.R.R. Tolkien.",
+                90.5,
+                ""
+        );
+
+        Product p2 = new Product(
+                null,
+                "Samsung Smart TV 55 Inch",
+                "Smart television with 4K resolution and advanced features.",
+                2190.0,
+                ""
+        );
+
+        Product p3 = new Product(
+                null,
+                "Apple MacBook Pro",
+                "Professional laptop with powerful performance and premium design.",
+                1250.0,
+                ""
+        );
+
+        Product p4 = new Product(
+                null,
+                "Gaming Desktop PC",
+                "High-performance gaming computer with advanced hardware.",
+                1200.0,
+                ""
+        );
+
+        Product p5 = new Product(
+                null,
+                "Rails for Beginners",
+                "A beginner-friendly book for learning Ruby on Rails.",
+                100.99,
+                ""
+        );
+        // Initial save for products
+        productRepository.saveAll(Arrays.asList(p1, p2, p3, p4, p5));
+
+        // Associating products with categories (Many-to-Many relationship)
+        p1.getCategories().add(cat1);
+        p2.getCategories().add(cat2);
+        p2.getCategories().add(cat3);
+        p3.getCategories().add(cat3);
+        p4.getCategories().add(cat3);
+        p5.getCategories().add(cat1);
+
+        // Saving updated associations to the database
+        productRepository.saveAll(Arrays.asList(p1, p2, p3, p4, p5));
 
         // ====================================================================
         // CREATE USERS
@@ -107,7 +173,7 @@ public class TestDataConfig implements CommandLineRunner {
                 "Domingos Dinis",
                 "Domingos@yahoo.com",
                 "61984615325",
-                "1985"
+                passwordEncoder.encode("Senha123!")
         );
 
         User u2 = new User(
@@ -115,7 +181,7 @@ public class TestDataConfig implements CommandLineRunner {
                 "Maria Silva",
                 "Maria@yahoo.com",
                 "61984615326",
-                "1990"
+                passwordEncoder.encode("Senha123!")
         );
 
         User u3 = new User(
@@ -123,7 +189,7 @@ public class TestDataConfig implements CommandLineRunner {
                 "Carlos Santos",
                 "Carlos@yahoo.com",
                 "61984615327",
-                "1988"
+                passwordEncoder.encode("Senha123!")
         );
 
         User u4 = new User(
@@ -131,7 +197,7 @@ public class TestDataConfig implements CommandLineRunner {
                 "Ana Oliveira",
                 "Ana@yahoo.com",
                 "61984615328",
-                "1992"
+                passwordEncoder.encode("Senha123!")
         );
 
         User u5 = new User(
@@ -139,7 +205,7 @@ public class TestDataConfig implements CommandLineRunner {
                 "João Pereira",
                 "Joao@yahoo.com",
                 "61984615329",
-                "1987"
+                passwordEncoder.encode("Senha123!")
         );
 
         User u6 = new User(
@@ -147,7 +213,7 @@ public class TestDataConfig implements CommandLineRunner {
                 "Fernanda Costa",
                 "Fernanda@yahoo.com",
                 "61984615330",
-                "1995"
+                passwordEncoder.encode("Senha123!")
         );
 
         User u7 = new User(
@@ -155,7 +221,7 @@ public class TestDataConfig implements CommandLineRunner {
                 "Ricardo Almeida",
                 "Ricardo@yahoo.com",
                 "61984615331",
-                "1983"
+                passwordEncoder.encode("Senha123!")
         );
 
         User u8 = new User(
@@ -163,11 +229,11 @@ public class TestDataConfig implements CommandLineRunner {
                 "Juliana Martins",
                 "Juliana@yahoo.com",
                 "61984615332",
-                "1991"
+                passwordEncoder.encode("Senha123!")
         );
 
         // Saving mock users into the database
-        userRepository.saveAll(Arrays.asList(u1, u2, u3, u4,u5,u6,u7,u8));
+        userRepository.saveAll(Arrays.asList(u1, u2, u3, u4, u5, u6, u7, u8));
 
         /*
          * Instant.now() captures the current date and time from the system clock.
@@ -227,8 +293,8 @@ public class TestDataConfig implements CommandLineRunner {
         orderRepository.saveAll(Arrays.asList(o1, o2, o3, o4));
 
         // ====================================================================
-// CREATE ORDERS 01
-// ====================================================================
+        // CREATE ORDERS 01
+        // ====================================================================
 
         Order01 ord1 = new Order01(
                 null,
@@ -259,8 +325,6 @@ public class TestDataConfig implements CommandLineRunner {
         );
 
         orderRepository01.saveAll(Arrays.asList(ord1, ord2, ord3, ord4));
-
-
     }
 }
 
@@ -286,33 +350,28 @@ Active Profile = "test"?
        Instantiate TestDataConfig
               │
               ▼
-       Inject UserRepository
-       Inject OrderRepository
+       Inject UserRepository, OrderRepository, CategoryRepository, ProductRepository, PasswordEncoder
               │
               ▼
        Trigger CommandLineRunner.run()
               │
               ▼
-       Create User objects
-       (u1, u2, u3, u4)
+       Create Category objects & Save
               │
               ▼
-       userRepository.saveAll(...)
+       Create Product objects & Save
               │
               ▼
-       H2 Database
-       Users populated
+       Associate Products <-> Categories & Save
               │
               ▼
-       Create Order objects
-       (o1, o2, o3, o4)
+       Create User objects & Encrypt Passwords via BCrypt & Save
               │
               ▼
-       orderRepository.saveAll(...)
+       Create Order objects & Save
               │
               ▼
-       H2 Database
-       Orders populated
+       H2 Database fully populated
 
 ============================================================================
 */

@@ -1,6 +1,9 @@
 package com.diniz.springbootstudy.dto;
 
 import com.diniz.springbootstudy.entities.User;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -32,8 +35,16 @@ public class UserDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private Long id;
+
+    @NotBlank(message = "Name is required")
+    @Size(min = 3, max = 80, message = "Name must be between 3 and 80 characters")
     private String name;
+
+    @NotBlank(message = "Email is required")
+    @Email(message = "Please enter a valid email address")
     private String email;
+
+    @NotBlank(message = "Phone is required")
     private String phone;
 
     // Default Constructor (required for JSON deserialization frameworks like Jackson)

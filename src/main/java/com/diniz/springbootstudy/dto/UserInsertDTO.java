@@ -1,5 +1,10 @@
 package com.diniz.springbootstudy.dto;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+
 import java.io.Serial;
 import java.io.Serializable;
 
@@ -23,9 +28,38 @@ public class UserInsertDTO implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
+    @NotBlank(message = "Name is required")
+    @Size(min = 3, max = 80, message = "Name must be between 3 and 80 characters")
     private String name;
+
+    @NotBlank(message = "Email is required")
+    @Email(message = "Please enter a valid email address")
     private String email;
+
+    @NotBlank(message = "Phone is required")
     private String phone;
+
+    /*
+     * PASSWORD VALIDATION POLICY:
+     * - @NotBlank: Password field cannot be null, empty, or whitespace.
+     * - @Size: Must be between 8 and 20 characters long.
+     * - @Pattern (Strong Password Regex):
+     *     (?=.*[0-9])       -> At least one digit (0-9)
+     *     (?=.*[a-z])       -> At least one lowercase letter (a-z)
+     *     (?=.*[A-Z])       -> At least one uppercase letter (A-Z)
+     *     (?=.*[@#$%^&+=!]) -> At least one special character
+     *
+     * EXAMPLES OF ACCEPTED PASSWORDS:
+     * - "Senha123!"
+     * - "Admin2026@"
+     * - "Diniz#85"
+     */
+    @NotBlank(message = "Password is required")
+    @Size(min = 8, max = 20, message = "Password must be between 8 and 20 characters")
+    @Pattern(
+            regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!]).*$",
+            message = "Password must contain at least one digit, one lowercase, one uppercase letter, and one special character"
+    )
     private String password;
 
     // Default Constructor (required for JSON deserialization frameworks like Jackson)
@@ -91,17 +125,17 @@ public class UserInsertDTO implements Serializable {
 
   HTTP POST Request Body (JSON)
   {
-    "name": "Maria",
+    "name": "Maria Silva",
     "email": "maria@gmail.com",
-    "phone": "999999999",
-    "password": "123"
+    "phone": "61984615326",
+    "password": "Senha123!"  ◄── Exemplo de senha válida aceita pelo filtro
   }
          │
          ▼
   [ UserInsertDTO ] ──► Contains: name, email, phone, password (raw)
          │
          ▼
-    UserService     ──► 1. Criptografa a senha via passwordEncoder.encode("123")
+    UserService     ──► 1. Criptografa a senha via passwordEncoder.encode("Senha123!")
          │              2. Salva no banco e gera o ID = 2
          ▼
     [ UserDTO ]     ──► Contains: id (2), name, email, phone (senha descarta!)
@@ -110,9 +144,9 @@ public class UserInsertDTO implements Serializable {
   HTTP Response (201 Created)
   {
     "id": 2,
-    "name": "Maria",
+    "name": "Maria Silva",
     "email": "maria@gmail.com",
-    "phone": "999999999"
+    "phone": "61984615326"
   }
  ============================================================================
 */

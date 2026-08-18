@@ -115,17 +115,21 @@ public class UserService {
          * Encrypts the raw password using BCryptPasswordEncoder before database persistence.
          * Returns a clean UserDTO (without exposing the password hash in the response).
          */
-        User entity = new User();
-        entity.setName(dto.getName()); // Updates the entity name field with the incoming DTO data
-        entity.setEmail(dto.getEmail());
-        entity.setPhone(dto.getPhone());
+        try {
+            User entity = new User();
+            entity.setName(dto.getName()); // Updates the entity name field with the incoming DTO data
+            entity.setEmail(dto.getEmail());
+            entity.setPhone(dto.getPhone());
 
-        // Hashing raw password into an irreversible BCrypt hash before saving
-        String passwordHash = passwordEncoder.encode(dto.getPassword());
-        entity.setPassword(passwordHash);
+            // Hashing raw password into an irreversible BCrypt hash before saving
+            String passwordHash = passwordEncoder.encode(dto.getPassword());
+            entity.setPassword(passwordHash);
 
-        entity = repository.save(entity);
-        return new UserDTO(entity);
+            entity = repository.save(entity);
+            return new UserDTO(entity);
+        } catch (DataIntegrityViolationException e) {
+            throw new DatabaseException("Email already exists: " + dto.getEmail());
+        }
     }
 
     @Transactional
@@ -144,9 +148,12 @@ public class UserService {
             return new UserDTO(entity);
         } catch (EntityNotFoundException e) {
             throw new ResourceNotFoundException(id);
+        } catch (DataIntegrityViolationException e) {
+            throw new DatabaseException("Email already exists: " + dto.getEmail());
         }
     }
 
+    @Transactional
     public void delete(Long id) {
         /*
          * Checks if the user exists before trying to delete.

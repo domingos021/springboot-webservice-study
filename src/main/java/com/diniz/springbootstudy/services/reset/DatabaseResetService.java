@@ -1,10 +1,7 @@
 package com.diniz.springbootstudy.services.reset;
 
 import com.diniz.springbootstudy.config.TestDataConfig;
-import com.diniz.springbootstudy.repositories.CategoryRepository;
-import com.diniz.springbootstudy.repositories.OrderRepository;
-import com.diniz.springbootstudy.repositories.OrderRepository01;
-import com.diniz.springbootstudy.repositories.UserRepository;
+import com.diniz.springbootstudy.repositories.*;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,14 +15,16 @@ public class DatabaseResetService {
     private final OrderRepository01 orderRepository01;
     private final UserRepository userRepository;
     private final TestDataConfig testDataConfig;
-    private CategoryRepository categoryRepository;
+    private final CategoryRepository categoryRepository;
+    private final ProductRepository productRepository;
 
     public DatabaseResetService(
             OrderRepository orderRepository,
             OrderRepository01 orderRepository01,
             UserRepository userRepository,
             TestDataConfig testDataConfig,
-            CategoryRepository categoryRepository
+            CategoryRepository categoryRepository,
+            ProductRepository productRepository
     ) {
 
         this.orderRepository = orderRepository;
@@ -33,6 +32,7 @@ public class DatabaseResetService {
         this.userRepository = userRepository;
         this.testDataConfig = testDataConfig;
         this.categoryRepository = categoryRepository;
+        this.productRepository = productRepository;
     }
 
     @Transactional
@@ -45,6 +45,7 @@ public class DatabaseResetService {
         // Delete parent table
         userRepository.deleteAllInBatch();
         categoryRepository.deleteAllInBatch();
+        productRepository.deleteAllInBatch();
 
         // Recreate the test data
         testDataConfig.run();

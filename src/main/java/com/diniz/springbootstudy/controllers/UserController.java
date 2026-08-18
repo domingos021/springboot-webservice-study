@@ -3,6 +3,7 @@ package com.diniz.springbootstudy.controllers;
 import com.diniz.springbootstudy.dto.UserDTO;
 import com.diniz.springbootstudy.dto.UserInsertDTO;
 import com.diniz.springbootstudy.services.UserService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -131,8 +132,11 @@ public class UserController {
     // Status Code: 201 Created (with 'Location' header pointing to the new resource)
     // ========================================================================
     @PostMapping
-    public ResponseEntity<UserDTO> insert(@RequestBody UserInsertDTO dto) {
+    public ResponseEntity<UserDTO> insert(@Valid @RequestBody UserInsertDTO dto) {
         /*
+         * @Valid:
+         * Triggers Bean Validation rules defined inside UserInsertDTO before executing the method body.
+         *
          * @RequestBody:
          * Deserializes the incoming JSON body payload directly into the UserInsertDTO object.
          *
@@ -160,8 +164,11 @@ public class UserController {
     // Status Code: 200 OK
     // ========================================================================
     @PutMapping(value = "/{id}")
-    public ResponseEntity<UserDTO> update(@PathVariable Long id, @RequestBody UserDTO dto) {
+    public ResponseEntity<UserDTO> update(@PathVariable Long id, @Valid @RequestBody UserDTO dto) {
         /*
+         * @Valid:
+         * Triggers Bean Validation rules defined inside UserDTO before executing the method body.
+         *
          * Replaces or updates fields of an existing user resource identified by 'id'.
          * Returns HTTP 200 (OK) with the updated UserDTO payload.
          */
@@ -173,7 +180,7 @@ public class UserController {
     // ENDPOINT: Delete User by ID
     // HTTP Method: DELETE
     // URL Example: http://localhost:8080/users/1
-    // Status Code: 24 No Content
+    // Status Code: 204 No Content
     // ========================================================================
     @DeleteMapping(value = "/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {

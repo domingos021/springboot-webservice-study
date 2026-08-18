@@ -31,6 +31,12 @@
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
 
+		<!-- Módulo Spring Validation (Suporte a validações de DTOs como @NotBlank, @Email, @Size) -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+
 		<!-- Módulo Spring Data JPA (Acesso, persistência e ORM de banco de dados) -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
