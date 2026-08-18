@@ -3,10 +3,12 @@ package com.diniz.springbootstudy.config;
 import com.diniz.springbootstudy.entities.Category;
 import com.diniz.springbootstudy.entities.Order;
 import com.diniz.springbootstudy.entities.Order01;
+import com.diniz.springbootstudy.entities.OrderItem;
 import com.diniz.springbootstudy.entities.Product;
 import com.diniz.springbootstudy.entities.User;
 import com.diniz.springbootstudy.entities.enums.OrderStatus;
 import com.diniz.springbootstudy.repositories.CategoryRepository;
+import com.diniz.springbootstudy.repositories.OrderItemRepository;
 import com.diniz.springbootstudy.repositories.OrderRepository;
 import com.diniz.springbootstudy.repositories.OrderRepository01;
 import com.diniz.springbootstudy.repositories.ProductRepository;
@@ -64,6 +66,7 @@ public class TestDataConfig implements CommandLineRunner {
     private final OrderRepository01 orderRepository01;
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
+    private final OrderItemRepository orderItemRepository;
     private final PasswordEncoder passwordEncoder;
 
     public TestDataConfig(
@@ -72,6 +75,7 @@ public class TestDataConfig implements CommandLineRunner {
             OrderRepository01 orderRepository01,
             CategoryRepository categoryRepository,
             ProductRepository productRepository,
+            OrderItemRepository orderItemRepository,
             PasswordEncoder passwordEncoder
     ) {
 
@@ -80,6 +84,7 @@ public class TestDataConfig implements CommandLineRunner {
         this.orderRepository01 = orderRepository01;
         this.categoryRepository = categoryRepository;
         this.productRepository = productRepository;
+        this.orderItemRepository = orderItemRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -331,6 +336,19 @@ public class TestDataConfig implements CommandLineRunner {
         );
 
         orderRepository01.saveAll(Arrays.asList(ord1, ord2, ord3, ord4));
+
+        // ====================================================================
+        // CREATE ORDER ITEMS
+        // ====================================================================
+
+        OrderItem oi1 = new OrderItem(ord1, p1, p1.getPrice(), 2);
+        OrderItem oi2 = new OrderItem(ord1, p3, p3.getPrice(), 1);
+        OrderItem oi3 = new OrderItem(ord2, p3, p3.getPrice(), 2);
+        OrderItem oi4 = new OrderItem(ord3, p5, p5.getPrice(), 2);
+        OrderItem oi5 = new OrderItem(ord4, p2, p2.getPrice(), 1);
+
+        // Saving mock order items into the database
+        orderItemRepository.saveAll(Arrays.asList(oi1, oi2, oi3, oi4, oi5));
     }
 }
 
@@ -356,7 +374,7 @@ Active Profile = "test"?
        Instantiate TestDataConfig
               │
               ▼
-       Inject UserRepository, OrderRepository, CategoryRepository, ProductRepository, PasswordEncoder
+       Inject UserRepository, OrderRepository, CategoryRepository, ProductRepository, PasswordEncoder, OrderItemRepository
               │
               ▼
        Trigger CommandLineRunner.run()
@@ -375,6 +393,12 @@ Active Profile = "test"?
               │
               ▼
        Create Order objects & Save
+              │
+              ▼
+       Create Order01 objects & Save
+              │
+              ▼
+       Create OrderItem objects & Save
               │
               ▼
        H2 Database fully populated

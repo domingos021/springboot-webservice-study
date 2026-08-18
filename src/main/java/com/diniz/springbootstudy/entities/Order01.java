@@ -1,5 +1,6 @@
 package com.diniz.springbootstudy.entities;
 
+import com.diniz.springbootstudy.entities.converters.OrderStatusConverter;
 import com.diniz.springbootstudy.entities.enums.OrderStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonRootName;
@@ -95,6 +96,8 @@ public class Order01 implements Serializable {
      * Conversion to Integer (database) and back to Enum (Java)
      * is performed seamlessly via 'OrderStatusConverter' (@Converter).
      */
+    @Column(name = "order_status")
+    @Convert(converter = OrderStatusConverter.class)
     private OrderStatus orderStatus;
 
     /**
