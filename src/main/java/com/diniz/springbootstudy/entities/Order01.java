@@ -109,8 +109,27 @@ public class Order01 implements Serializable {
     private User client;
 
     /**
-     * Set of items associated with this order.
-     * 'id.order' references the 'order' field inside the 'OrderItemPk' composite key.
+     * Set of OrderItem entities associated with this Order01.
+     *
+     * OrderItem has an embedded id of type OrderItemPk.
+     *
+     * OrderItemPk is an auxiliary class that represents the composite key
+     * and contains two associations:
+     *
+     * id.order   -> references the Order01 associated with this OrderItem
+     * id.product -> references the Product associated with this OrderItem
+     *
+     * Through the id attribute of OrderItem, we can access both associations:
+     *
+     * orderItem.id.order
+     * orderItem.id.product
+     *
+     * The mappedBy = "id.order" means that this collection is mapped through
+     * the 'order' attribute inside the OrderItemPk composite key.
+     *
+     * In other words, this collection returns all OrderItem records where:
+     *
+     * orderItem.id.order == this Order01
      */
     @OneToMany(mappedBy = "id.order")
     private Set<OrderItem> items = new HashSet<>();

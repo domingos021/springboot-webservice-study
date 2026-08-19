@@ -272,36 +272,36 @@ public class TestDataConfig implements CommandLineRunner {
         // CREATE ORDERS
         // ====================================================================
 
-        Order o1 = new Order(
+        Order01 o1 = new Order01(
                 null,
                 Instant.parse("2026-08-13T10:30:00Z"),
                 OrderStatus.PAID,
                 u1 // this order is associated to the client u1
         );
 
-        Order o2 = new Order(
+        Order01 o2 = new Order01(
                 null,
                 Instant.parse("2026-08-13T11:45:00Z"),
                 OrderStatus.WAITING_PAYMENT,
                 u2
         );
 
-        Order o3 = new Order(
+        Order01 o3 = new Order01(
                 null,
                 Instant.parse("2026-08-13T14:20:00Z"),
                 OrderStatus.PAID,
                 u3
         );
 
-        Order o4 = new Order(
+        Order01 o4 = new Order01(
                 null,
                 Instant.parse("2026-08-13T16:00:00Z"),
                 OrderStatus.DELIVERED,
                 u4
         );
 
-        // Saving mock orders into the database
-        orderRepository.saveAll(Arrays.asList(o1, o2, o3, o4));
+        // Saving mock orders into the database using OrderRepository01
+        orderRepository01.saveAll(Arrays.asList(o1, o2, o3, o4));
 
         // ====================================================================
         // CREATE ORDERS 01
@@ -341,14 +341,45 @@ public class TestDataConfig implements CommandLineRunner {
         // CREATE ORDER ITEMS
         // ====================================================================
 
-        OrderItem oi1 = new OrderItem(ord1, p1, p1.getPrice(), 2);
-        OrderItem oi2 = new OrderItem(ord1, p3, p3.getPrice(), 1);
-        OrderItem oi3 = new OrderItem(ord2, p3, p3.getPrice(), 2);
-        OrderItem oi4 = new OrderItem(ord3, p5, p5.getPrice(), 2);
-        OrderItem oi5 = new OrderItem(ord4, p2, p2.getPrice(), 1);
+        /*
+         * OrderItem
+         * ├── id (OrderItemPk)  ← Chave composta (@EmbeddedId)
+         * │     ├── Order01 order    (FK → tb_order)
+         * │     └── Product product  (FK → tb_product)
+         * │
+         * ├── Double price
+         * └── Integer quantity
+         *
+         * Order01
+         * ├── id
+         * ├── moment
+         * ├── status (OrderStatus)
+         * └── client (User)
+         *
+         * Product
+         * ├── id
+         * ├── name
+         * ├── description
+         * ├── price
+         * └── imgUrl
+         */
+
+        // Items associated with orders o1, o2, o3, o4
+        OrderItem oi1 = new OrderItem(o1, p1, p1.getPrice(), 2);
+        OrderItem oi2 = new OrderItem(o1, p3, p3.getPrice(), 1);
+        OrderItem oi3 = new OrderItem(o2, p3, p3.getPrice(), 2);
+        OrderItem oi4 = new OrderItem(o3, p5, p5.getPrice(), 2);
+        OrderItem oi5 = new OrderItem(o4, p2, p2.getPrice(), 1);
+
+        // Items associated with orders ord1, ord2, ord3, ord4
+        OrderItem oi6 = new OrderItem(ord1, p1, p1.getPrice(), 2);
+        OrderItem oi7 = new OrderItem(ord1, p3, p3.getPrice(), 1);
+        OrderItem oi8 = new OrderItem(ord2, p3, p3.getPrice(), 2);
+        OrderItem oi9 = new OrderItem(ord3, p5, p5.getPrice(), 2);
+        OrderItem oi10 = new OrderItem(ord4, p2, p2.getPrice(), 1);
 
         // Saving mock order items into the database
-        orderItemRepository.saveAll(Arrays.asList(oi1, oi2, oi3, oi4, oi5));
+        orderItemRepository.saveAll(Arrays.asList(oi1, oi2, oi3, oi4, oi5, oi6, oi7, oi8, oi9, oi10));
     }
 }
 

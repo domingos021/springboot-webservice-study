@@ -1,7 +1,7 @@
 package com.diniz.springbootstudy.services;
 
 import com.diniz.springbootstudy.dto.OrderDTO;
-import com.diniz.springbootstudy.entities.Order;
+import com.diniz.springbootstudy.entities.Order01;
 import com.diniz.springbootstudy.repositories.OrderRepository;
 import com.diniz.springbootstudy.services.exceptions.DatabaseException;
 import com.diniz.springbootstudy.services.exceptions.ResourceNotFoundException;
@@ -86,7 +86,7 @@ public class OrderService {
          * Fetches Order entities from the database and converts the list
          * into a list of OrderDTOs using Java Streams and a constructor reference.
          */
-        List<Order> list = repository.findAll();
+        List<Order01> list = repository.findAll();
 
         /*
          * List<Order>
@@ -130,7 +130,7 @@ public class OrderService {
          * The exception is caught globally by @ControllerAdvice
          * to return a proper 404 Not Found.
          */
-        Order entity = repository.findById(id)
+        Order01 entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(id));
 
         return new OrderDTO(entity);
@@ -145,7 +145,7 @@ public class OrderService {
          * Finally, the persisted entity is converted back to OrderDTO
          * before being returned to the Controller layer.
          */
-        Order entity = new Order();
+        Order01 entity = new Order01();
 
         // Copies the data received from the DTO to the entity.
         entity.setMoment(dto.getMoment());
@@ -156,7 +156,7 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderDTO update(Long id, OrderDTO dto) {
+    public OrderDTO update(Long id, OrderDTO orderdto) {
         /*
          * Uses getReferenceById(id) instead of findById(id) to avoid
          * an extra SELECT database query.
@@ -169,9 +169,9 @@ public class OrderService {
          * ResourceNotFoundException (HTTP 404).
          */
         try {
-            Order entity = repository.getReferenceById(id);
+            Order01 entity = repository.getReferenceById(id);
 
-            updateData(entity, dto);
+            updateData(entity, orderdto);
 
             entity = repository.save(entity);
 
@@ -204,9 +204,27 @@ public class OrderService {
         }
     }
 
-    // Helper method to copy non-sensitive fields from DTO to Entity
-    private void updateData(Order entity, OrderDTO dto) {
-        entity.setMoment(dto.getMoment());
+    /*
+     * Helper method responsible for updating the entity fields using data
+     * received from the DTO.
+     *
+     * This method copies only the fields that are allowed to be changed,
+     * keeping control over which entity attributes can be modified.
+     *
+     * It prevents duplicated code by centralizing the update logic in one place.
+     *
+     * Example:
+     *
+     * Order01 entity  <-  OrderDTO dto
+     *
+     * Only the fields defined here will be updated.
+     * Fields not included remain unchanged.
+     *
+     * This approach is commonly used in update operations (PUT),
+     * where we receive a DTO and apply its values to an existing entity.
+     */
+    private void updateData(Order01 entity, OrderDTO orderdto) {
+        entity.setMoment(orderdto.getMoment());
     }
 }
 

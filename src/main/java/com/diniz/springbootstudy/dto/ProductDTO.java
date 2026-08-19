@@ -28,7 +28,7 @@ import java.util.Set;
  * for API requests and responses.
  *
  * Filters the {@link Product} entity to expose only the fields required
- * by the API: id, name, description, price, imgUrl and categories.
+ * by the API: id, name, description, price, imgUrl, categories and orders.
  */
 @JsonRootName(value = "product")
 public class ProductDTO implements Serializable {
@@ -43,6 +43,13 @@ public class ProductDTO implements Serializable {
     private String imgUrl;
 
     private Set<CategoryDTO> categories = new HashSet<>();
+
+    /*
+     * We map associated orders using OrderDTO instead of the JPA Entity (Order).
+     * This allows Jackson to serialize the orders in the JSON response without
+     * causing infinite recursion loops or exposing internal database structures.
+     */
+    private Set<OrderDTO> orders = new HashSet<>();
 
 
     // Default Constructor (required for JSON deserialization frameworks like Jackson)
@@ -61,13 +68,15 @@ public class ProductDTO implements Serializable {
      * @param price Product price
      * @param imgUrl Product image URL
      * @param categories Product categories
+     * @param orders Associated orders
      */
     public ProductDTO(Long id,
                       String name,
                       String description,
                       Double price,
                       String imgUrl,
-                      Set<CategoryDTO> categories
+                      Set<CategoryDTO> categories,
+                      Set<OrderDTO> orders
     ) {
 
         this.id = id;
@@ -76,6 +85,7 @@ public class ProductDTO implements Serializable {
         this.price = price;
         this.imgUrl = imgUrl;
         this.categories = categories;
+        this.orders = orders;
     }
 
 
@@ -98,7 +108,16 @@ public class ProductDTO implements Serializable {
         if (entity.getCategories() != null) {
             entity.getCategories().forEach(cat -> this.categories.add(new CategoryDTO(cat)));
         }
+
+        /*
+         * Populates the orders set by converting each associated Order entity
+         * (accessed via entity.getOrders()) into an OrderDTO.
+         */
+        if (entity.getOrders() != null) {
+            entity.getOrders().forEach(order -> this.orders.add(new OrderDTO(order)));
+        }
     }
+
 
 
     // ============================================================================
@@ -162,5 +181,15 @@ public class ProductDTO implements Serializable {
 
     public void setCategories(Set<CategoryDTO> categories) {
         this.categories = categories;
+    }
+
+
+    public Set<OrderDTO> getOrders() {
+        return orders;
+    }
+
+
+    public void setOrders(Set<OrderDTO> orders) {
+        this.orders = orders;
     }
 }

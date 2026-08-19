@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class DatabaseResetService {
 
+    private final OrderItemRepository orderItemRepository;
     private final OrderRepository orderRepository;
     private final OrderRepository01 orderRepository01;
     private final UserRepository userRepository;
@@ -19,6 +20,7 @@ public class DatabaseResetService {
     private final ProductRepository productRepository;
 
     public DatabaseResetService(
+            OrderItemRepository orderItemRepository,
             OrderRepository orderRepository,
             OrderRepository01 orderRepository01,
             UserRepository userRepository,
@@ -27,6 +29,7 @@ public class DatabaseResetService {
             ProductRepository productRepository
     ) {
 
+        this.orderItemRepository = orderItemRepository;
         this.orderRepository = orderRepository;
         this.orderRepository01 = orderRepository01;
         this.userRepository = userRepository;
@@ -38,14 +41,19 @@ public class DatabaseResetService {
     @Transactional
     public void resetDatabase() throws Exception {
 
+        // Delete order items first (FK to Order01 and Product)
+        orderItemRepository.deleteAllInBatch();
+
         // Delete child tables first (FK to User)
         orderRepository.deleteAllInBatch();
         orderRepository01.deleteAllInBatch();
 
+        // Delete products and categories
+        productRepository.deleteAllInBatch();
+        categoryRepository.deleteAllInBatch();
+
         // Delete parent table
         userRepository.deleteAllInBatch();
-        categoryRepository.deleteAllInBatch();
-        productRepository.deleteAllInBatch();
 
         // Recreate the test data
         testDataConfig.run();

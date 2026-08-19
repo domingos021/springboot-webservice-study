@@ -1,6 +1,7 @@
 package com.diniz.springbootstudy.repositories;
 
 import com.diniz.springbootstudy.entities.Order;
+import com.diniz.springbootstudy.entities.Order01;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -37,7 +38,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 // Indicates a Data Access component. Optional when extending JpaRepository,
 // but recommended for semantic clarity.
-public interface OrderRepository extends JpaRepository<Order, Long> {
+public interface OrderRepository extends JpaRepository<Order01, Long> {
 
     /*
      * JpaRepository Generic Parameters:

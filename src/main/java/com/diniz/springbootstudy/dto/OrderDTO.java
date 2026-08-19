@@ -1,11 +1,14 @@
 package com.diniz.springbootstudy.dto;
 
-import com.diniz.springbootstudy.entities.Order;
-import com.diniz.springbootstudy.entities.User;
+import com.diniz.springbootstudy.entities.Order01;
+import com.diniz.springbootstudy.entities.enums.OrderStatus;
 import com.fasterxml.jackson.annotation.JsonRootName;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 
 // ============================================================================
 // DATA TRANSFER OBJECT (DTO) LAYER - FIELD FILTER & CONTRACT DEFINITION
@@ -28,8 +31,8 @@ import java.io.Serializable;
  * Data Transfer Object representing the filtered Order data payload
  * for API requests and responses.
  *
- * Filters the {@link Order} entity to expose only the fields required
- * by the API: id, moment and client.
+ * Filters the {@link Order01} entity to expose only the fields required
+ * by the API: id, moment, orderStatus, client, items and total.
  */
 @JsonRootName(value = "order")
 public class OrderDTO implements Serializable {
@@ -38,8 +41,21 @@ public class OrderDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private Long id;
-    private java.time.Instant moment;
-    private User client;
+    private Instant moment;
+    private OrderStatus orderStatus;
+
+    /*
+     * We use UserDTO instead of the JPA Entity (User).
+     * This guarantees that no bidirectional JPA attributes from User (like Set<Order01>)
+     * cause infinite serialization loops during JSON conversion.
+     */
+    private UserDTO client;
+
+    /*
+     * Collection of OrderItemDTO representing the items purchased in this order.
+     * Maps the relationship without exposing the underlying JPA OrderItem entity directly.
+     */
+    private Set<OrderItemDTO> items = new HashSet<>();
 
     // Default Constructor (required for JSON deserialization frameworks like Jackson)
     public OrderDTO() {
@@ -52,26 +68,40 @@ public class OrderDTO implements Serializable {
      *
      * @param id Order ID
      * @param moment Order date and time
-     * @param client User associated with the Order
+     * @param orderStatus Order status Enum
+     * @param client UserDTO associated with the Order
      */
-    public OrderDTO(Long id, java.time.Instant moment, User client) {
+    public OrderDTO(Long id, Instant moment, OrderStatus orderStatus, UserDTO client) {
         this.id = id;
         this.moment = moment;
+        this.orderStatus = orderStatus;
         this.client = client;
     }
 
     /**
      * Entity Conversion Constructor (PRODUCTION USE).
      *
-     * Selectively maps the desired fields from the JPA {@link Order} entity
+     * Selectively maps the desired fields from the JPA {@link Order01} entity
      * into {@link OrderDTO}.
      *
-     * @param entity The source Order entity retrieved from the database.
+     * @param entity The source Order01 entity retrieved from the database.
      */
-    public OrderDTO(Order entity) {
+    public OrderDTO(Order01 entity) {
         this.id = entity.getId();
         this.moment = entity.getMoment();
-        this.client = entity.getClient();
+        this.orderStatus = entity.getOrderStatus();
+
+        if (entity.getClient() != null) {
+            this.client = new UserDTO(entity.getClient());
+        }
+
+        /*
+         * Populates the items set by converting each OrderItem entity from Order01
+         * into an OrderItemDTO.
+         */
+        if (entity.getItems() != null) {
+            entity.getItems().forEach(item -> this.items.add(new OrderItemDTO(item)));
+        }
     }
 
     // ========================================================================
@@ -86,20 +116,46 @@ public class OrderDTO implements Serializable {
         this.id = id;
     }
 
-    public java.time.Instant getMoment() {
+    public Instant getMoment() {
         return moment;
     }
 
-    public void setMoment(java.time.Instant moment) {
+    public void setMoment(Instant moment) {
         this.moment = moment;
     }
 
-    public User getClient() {
+    public OrderStatus getOrderStatus() {
+        return orderStatus;
+    }
+
+    public void setOrderStatus(OrderStatus orderStatus) {
+        this.orderStatus = orderStatus;
+    }
+
+    public UserDTO getClient() {
         return client;
     }
 
-    public void setClient(User client) {
+    public void setClient(UserDTO client) {
         this.client = client;
+    }
+
+    public Set<OrderItemDTO> getItems() {
+        return items;
+    }
+
+    /**
+     * Calculates the total price of the order dynamically by summing up
+     * the subtotal of each OrderItemDTO in the items collection.
+     *
+     * Jackson automatically serializes this method call into a 'total' key in the JSON response.
+     */
+    public Double getTotal() {
+        double sum = 0.0;
+        for (OrderItemDTO item : items) {
+            sum += item.getSubTotal();
+        }
+        return sum;
     }
 }
 
@@ -108,16 +164,16 @@ public class OrderDTO implements Serializable {
  DTO AS A FIELD FILTERING PIPELINE
  ============================================================================
 
- Database Table (tb_order)
+ Database Table (tb_order_01)
        │
        ▼
- [ Order Entity ]  <-- Full Entity:
+ [ Order01 Entity ] <-- Full Entity:
        │
        │              • id
        │              • moment
-       │              • client
-       │                    │
-       │                    └──> User
+       │              • orderStatus
+       │              • client  ──> User
+       │              • items   ──> Set<OrderItem>
        │
        │ (Conversion via new OrderDTO(entity))
        ▼
@@ -125,7 +181,10 @@ public class OrderDTO implements Serializable {
        │
        │              • id
        │              • moment
-       │              • client
+       │              • orderStatus
+       │              • client (UserDTO)
+       │              • items (Set<OrderItemDTO>)
+       │              • total (Calculated dynamically)
        │
        ▼
  OrderResource    <-- Returns OrderDTO
@@ -140,12 +199,13 @@ public class OrderDTO implements Serializable {
 
                   1                         N
         +----------------+          +----------------+
-        |      User      |          |     Order      |
+        |      User      |          |    Order01     |
         +----------------+          +----------------+
         | id (PK)        | <--------| client_id (FK) |
         | name           |          | id (PK)        |
         | email          |          | moment         |
-        +----------------+          +----------------+
+        +----------------+          | order_status   |
+                                    +----------------+
                                           |
                                           |
                                    client -> User
@@ -155,7 +215,7 @@ public class OrderDTO implements Serializable {
 
  In the database:
 
-     tb_order.client_id  ──────────>  tb_user.id
-          (Foreign Key)                (Primary Key)
+     tb_order_01.client_id ──────────> tb_user.id
+          (Foreign Key)                 (Primary Key)
  ============================================================================
 */

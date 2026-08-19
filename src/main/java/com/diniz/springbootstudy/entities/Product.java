@@ -30,6 +30,36 @@ public class Product implements Serializable {
 // ============================================================================
 
     /*
+     * This collection represents a relationship between entities.
+     *
+     * The collection is not manually populated when the entity object is created.
+     * It starts as an empty collection using new HashSet<>().
+     *
+     * The collection is managed by JPA/Hibernate.
+     *
+     * When this entity is loaded from the database, Hibernate automatically
+     * populates this collection with the related entities according to the
+     * mapping configuration (@OneToMany, @ManyToMany, etc.).
+     *
+     * Example:
+     *
+     * Entity
+     *    |
+     *    | collection
+     *    |
+     *    v
+     * Related entities
+     *
+     * The relationship can be navigated through this collection, allowing access
+     * to the associated objects.
+     *
+     * Note:
+     * For new objects created only in memory, Hibernate has not loaded anything
+     * yet. If necessary, the developer must maintain both sides of a bidirectional
+     * relationship manually by adding or removing elements from the collections.
+     */
+
+    /*
      * A Product can have one or more Categories,
      * and a Category can be associated with one or more Products.
      *
@@ -77,7 +107,75 @@ public class Product implements Serializable {
     )
     private Set<Category> categories = new HashSet<>();
 
-    //Constructors
+
+    /*
+     * OrderItem has an embedded id of type OrderItemPk.
+     *
+     * OrderItemPk is an auxiliary class that represents the composite key.
+     * Inside this composite key we have two associations:
+     *
+     * id.order   -> gets the Order01 associated with this OrderItem
+     * id.product -> gets the Product associated with this OrderItem
+     *
+     * Therefore, through the id attribute of OrderItem we can access both
+     * sides of the composite key:
+     *
+     * orderItem.id.order
+     * orderItem.id.product
+     *
+     * The mappedBy uses "id.product" because this collection is mapping
+     * the relationship from Product to OrderItem through the product
+     * association inside OrderItemPk.
+     */
+
+    /*
+     * This collection represents the relationship between Product and OrderItem.
+     *
+     * Product does not manually populate this Set when the object is created.
+     * The collection is managed by JPA/Hibernate.
+     *
+     * When a Product entity is loaded from the database, Hibernate automatically
+     * fills this collection with all OrderItem records where:
+     *
+     * OrderItem.id.product == this Product
+     *
+     * The relationship is mapped through the composite key:
+     *
+     * Product
+     *    |
+     *    | orderItems
+     *    |
+     *    v
+     * OrderItem
+     *    |
+     *    | id (OrderItemPk)
+     *    |
+     *    +-- product -> Product
+     *    +-- order   -> Order01
+     *
+     * The OrderItemPk object contains the two associations that form the
+     * composite key:
+     *
+     * id.product -> accesses the Product
+     * id.order   -> accesses the Order01
+     *
+     * Therefore, this collection allows navigation from Product to OrderItem,
+     * and through each OrderItem we can access the related Order01.
+     *
+     * Example:
+     *
+     * product.getOrders()
+     *
+     * Product -> OrderItem -> Order01
+     *
+     * Note:
+     * The collection starts empty when a new Product object is created.
+     * It is populated automatically by Hibernate when the entity is retrieved
+     * from the database.
+     */
+    @OneToMany(mappedBy = "id.product")
+    private Set<OrderItem> orderItems = new HashSet<>();
+
 
 
     public Product() {
@@ -149,6 +247,43 @@ public class Product implements Serializable {
      */
     public Set<Category> getCategories() {
         return categories;
+    }
+
+
+    // gets the Orders associated with this products
+    public Set<Order01> getOrders() {
+        Set<Order01> set = new HashSet<>();
+
+        /*
+         * For each OrderItem associated with this Product,
+         * we get the Order01 object related to that item.
+         *
+         * The relationship is stored inside OrderItem through
+         * its composite key (OrderItemPk).
+         *
+         * OrderItem
+         *      |
+         *      +-- id (OrderItemPk)
+         *             |
+         *             +-- order -> Order01
+         *             +-- product -> Product
+         *
+         * The getOrder() method internally accesses:
+         *
+         * orderItem.id.order
+         *
+         * and returns the Order01 associated with this OrderItem.
+         *
+         * Then we add this Order01 object to the Set collection.
+         *
+         * Result:
+         * Product -> OrderItem -> Order01
+         */
+        for (OrderItem orderItem : orderItems) {
+            set.add(orderItem.getOrder());
+        }
+
+        return set;
     }
 
     @Override

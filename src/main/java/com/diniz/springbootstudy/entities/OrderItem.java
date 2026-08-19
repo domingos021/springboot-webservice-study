@@ -99,6 +99,7 @@ public class OrderItem implements Serializable {
         id.setOrder(order); // Sets the Order reference inside the composite key.
     }
 
+    @JsonIgnore
     public Product getProduct() {
         return id.getProduct();
     }
