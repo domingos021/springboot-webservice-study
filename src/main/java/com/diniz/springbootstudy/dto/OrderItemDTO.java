@@ -5,6 +5,31 @@ import com.diniz.springbootstudy.entities.OrderItem;
 import java.io.Serial;
 import java.io.Serializable;
 
+/*
+JPA ENTITIES (Domain Layer)                        API PAYLOAD (DTO Layer)
+
+  +----------------------------------+                   +----------------------------------+
+  |            OrderItem             |                   |           OrderItemDTO           |
+  +----------------------------------+                   +----------------------------------+
+  | - price: Double                  | ────────────────> | - price: Double                  |
+  | - quantity: Integer              | ────────────────> | - quantity: Integer              |
+  | + getSubTotal(): Double          | ────────────────> | - subTotal: Double               |
+  | - id: OrderItemPk                |                   |                                  |
+  |      └── product ────────────────┼────────┐          |                                  |
+  +----------------------------------+        │          |                                  |
+                                              ▼          |                                  |
+                                 +--------------------+  |                                  |
+                                 |      Product       |  |                                  |
+                                 +--------------------+  |                                  |
+                                 | - id: Long         | ─┼─> - productId: Long              |
+                                 | - name: String     | ─┼─> - name: String                 |
+                                 | - imgUrl: String   | ─┼─> - imgUrl: String               |
+                                 +--------------------+  +----------------------------------+
+                                                                          │
+                                                                          ▼
+                                                                  JSON Output Payload
+ */
+
 // ============================================================================
 // DATA TRANSFER OBJECT (DTO) - ORDER ITEM PAYLOAD
 // ============================================================================
@@ -20,9 +45,10 @@ public class OrderItemDTO implements Serializable {
 
     private Long productId;
     private String name;
+    private String imgUrl;
     private Double price;
     private Integer quantity;
-    private String imgUrl;
+    private Double subTotal;
 
     public OrderItemDTO() {
     }
@@ -32,11 +58,13 @@ public class OrderItemDTO implements Serializable {
      * Extracts product fields directly from the associated Product entity in OrderItem.
      */
     public OrderItemDTO(OrderItem entity) {
+        // O Java executa getProduct() no backend sem impedimentos do @JsonIgnore
         this.productId = entity.getProduct().getId();
         this.name = entity.getProduct().getName();
+        this.imgUrl = entity.getProduct().getImgUrl();
         this.price = entity.getPrice();
         this.quantity = entity.getQuantity();
-        this.imgUrl = entity.getProduct().getImgUrl();
+        this.subTotal = entity.getSubTotal();
     }
 
     // ========================================================================
@@ -82,8 +110,7 @@ public class OrderItemDTO implements Serializable {
     public void setImgUrl(String imgUrl) {
         this.imgUrl = imgUrl;
     }
-
     public Double getSubTotal() {
-        return price * quantity;
+        return subTotal;
     }
 }

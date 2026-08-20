@@ -1,6 +1,5 @@
 package com.diniz.springbootstudy.entities;
 
-
 import jakarta.persistence.*;
 
 import java.io.Serial;
@@ -177,7 +176,6 @@ public class Product implements Serializable {
     private Set<OrderItem> orderItems = new HashSet<>();
 
 
-
     public Product() {
     }
 
@@ -238,7 +236,6 @@ public class Product implements Serializable {
     }
 
     /*
-     * 3ª ->
      * We only use a getter when working with collections (List, Set),
      * because we do not replace the collection itself.
      *
@@ -249,6 +246,13 @@ public class Product implements Serializable {
         return categories;
     }
 
+    /**
+     * Returns the raw OrderItem associations for this product.
+     * Used by administrative DTOs to calculate sales KPIs.
+     */
+    public Set<OrderItem> getItems() {
+        return orderItems;
+    }
 
     // gets the Orders associated with this products
     public Set<Order01> getOrders() {

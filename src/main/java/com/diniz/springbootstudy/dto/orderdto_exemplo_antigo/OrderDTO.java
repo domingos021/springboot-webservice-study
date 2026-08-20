@@ -1,4 +1,4 @@
-package com.diniz.springbootstudy.dto.order01;
+package com.diniz.springbootstudy.dto.orderdto_exemplo_antigo;
 
 import com.diniz.springbootstudy.entities.Order01;
 import com.diniz.springbootstudy.entities.OrderItem;
@@ -38,7 +38,7 @@ import java.util.Set;
  * id, moment, orderStatus, client, items, and total.
  */
 @JsonRootName(value = "order01")
-public class OrderDTO01 implements Serializable {
+public class OrderDTO implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
@@ -61,7 +61,7 @@ public class OrderDTO01 implements Serializable {
      *
      * Required by serialization/deserialization frameworks such as Jackson.
      */
-    public OrderDTO01() {
+    public OrderDTO() {
     }
 
     /**
@@ -74,7 +74,7 @@ public class OrderDTO01 implements Serializable {
      * @param orderStatus Order status
      * @param client User associated with the order
      */
-    public OrderDTO01(Long id, Instant moment, OrderStatus orderStatus, User client) {
+    public OrderDTO(Long id, Instant moment, OrderStatus orderStatus, User client) {
         this.id = id;
         this.moment = moment;
         this.orderStatus = orderStatus;
@@ -89,7 +89,7 @@ public class OrderDTO01 implements Serializable {
      *
      * @param entity Source entity retrieved from the database.
      */
-    public OrderDTO01(Order01 entity) {
+    public OrderDTO(Order01 entity) {
         this.id = entity.getId();
         this.moment = entity.getMoment();
         this.orderStatus = entity.getOrderStatus();

@@ -1,6 +1,7 @@
 package com.diniz.springbootstudy.controllers;
 
-import com.diniz.springbootstudy.dto.order01.OrderDTO01;
+// IMPORTAÇÃO CORRIGIDA: Aponta para a DTO refatorada com o OrderItemDTO completo
+import com.diniz.springbootstudy.dto.OrderDTO01;
 import com.diniz.springbootstudy.services.OrderService01;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -255,5 +256,4 @@ Therefore:
 tb_order_01.client_id ─────────► tb_user.id
 
 ============================================================================
-
- */
+*/

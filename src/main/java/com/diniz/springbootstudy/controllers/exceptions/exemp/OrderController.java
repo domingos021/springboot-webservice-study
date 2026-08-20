@@ -1,7 +1,7 @@
-package com.diniz.springbootstudy.controllers;
+package com.diniz.springbootstudy.controllers.exceptions.exemp;
 
-import com.diniz.springbootstudy.dto.OrderDTO;
-import com.diniz.springbootstudy.services.OrderService;
+import com.diniz.springbootstudy.dto.OrderDTO01;
+import com.diniz.springbootstudy.services.exemplo_antigo.OrderService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -80,7 +80,7 @@ public class OrderController {
     // ========================================================================
 
     @GetMapping
-    public ResponseEntity<List<OrderDTO>> findAll() {
+    public ResponseEntity<List<OrderDTO01>> findAll() {
 
         /*
          * Request flow:
@@ -94,7 +94,7 @@ public class OrderController {
          * 7. Controller returns the DTO list to the client.
          */
 
-        List<OrderDTO> list = service.findAll();
+        List<OrderDTO01> list = service.findAll();
 
         /*
          * ResponseEntity.ok() creates an HTTP 200 OK response.
@@ -113,7 +113,7 @@ public class OrderController {
     // ========================================================================
 
     @GetMapping(value = "/{id}")
-    public ResponseEntity<OrderDTO> findById(@PathVariable Long id) {
+    public ResponseEntity<OrderDTO01> findById(@PathVariable Long id) {
 
         /*
          * @PathVariable extracts the ID from the URL.
@@ -127,7 +127,7 @@ public class OrderController {
          * The Controller delegates the search to OrderService.
          */
 
-        OrderDTO dto = service.findById(id);
+        OrderDTO01 dto = service.findById(id);
 
         return ResponseEntity.ok().body(dto);
     }

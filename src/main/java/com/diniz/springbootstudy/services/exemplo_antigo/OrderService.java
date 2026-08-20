@@ -1,6 +1,6 @@
-package com.diniz.springbootstudy.services;
+package com.diniz.springbootstudy.services.exemplo_antigo;
 
-import com.diniz.springbootstudy.dto.OrderDTO;
+import com.diniz.springbootstudy.dto.OrderDTO01;
 import com.diniz.springbootstudy.entities.Order01;
 import com.diniz.springbootstudy.repositories.OrderRepository;
 import com.diniz.springbootstudy.services.exceptions.DatabaseException;
@@ -81,7 +81,7 @@ public class OrderService {
     // ========================================================================
 
     @Transactional(readOnly = true)
-    public List<OrderDTO> findAll() {
+    public List<OrderDTO01> findAll() {
         /*
          * Fetches Order entities from the database and converts the list
          * into a list of OrderDTOs using Java Streams and a constructor reference.
@@ -114,12 +114,12 @@ public class OrderService {
         // For each Order in the list, calls the OrderDTO(Order) constructor
         // and transforms the list of Orders into a list of OrderDTOs.
         return list.stream() // Starts a stream from the list of Orders
-                .map(OrderDTO::new) // Creates a new OrderDTO for each Order
+                .map(OrderDTO01::new) // Creates a new OrderDTO for each Order
                 .toList(); // Converts the Stream<OrderDTO> into a List<OrderDTO>
     }
 
     @Transactional(readOnly = true)
-    public OrderDTO findById(Long id) {
+    public OrderDTO01 findById(Long id) {
         /*
          * Handling Optional<Order>:
          *
@@ -133,11 +133,11 @@ public class OrderService {
         Order01 entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(id));
 
-        return new OrderDTO(entity);
+        return new OrderDTO01(entity);
     }
 
     @Transactional
-    public OrderDTO insert(OrderDTO dto) {
+    public OrderDTO01 insert(OrderDTO01 dto) {
         /*
          * Creates a new Order entity from the input OrderDTO.
          *
@@ -152,11 +152,11 @@ public class OrderService {
 
         entity = repository.save(entity);
 
-        return new OrderDTO(entity);
+        return new OrderDTO01(entity);
     }
 
     @Transactional
-    public OrderDTO update(Long id, OrderDTO orderdto) {
+    public OrderDTO01 update(Long id, OrderDTO01 orderdto) {
         /*
          * Uses getReferenceById(id) instead of findById(id) to avoid
          * an extra SELECT database query.
@@ -175,7 +175,7 @@ public class OrderService {
 
             entity = repository.save(entity);
 
-            return new OrderDTO(entity);
+            return new OrderDTO01(entity);
 
         } catch (EntityNotFoundException e) {
             throw new ResourceNotFoundException(id);
@@ -223,7 +223,7 @@ public class OrderService {
      * This approach is commonly used in update operations (PUT),
      * where we receive a DTO and apply its values to an existing entity.
      */
-    private void updateData(Order01 entity, OrderDTO orderdto) {
+    private void updateData(Order01 entity, OrderDTO01 orderdto) {
         entity.setMoment(orderdto.getMoment());
     }
 }

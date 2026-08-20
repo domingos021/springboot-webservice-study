@@ -1,8 +1,11 @@
 package com.diniz.springbootstudy.services;
 
-import com.diniz.springbootstudy.dto.order01.OrderDTO01;
+// 1. IMPORTAÇÃO DA DTO ATUALIZADA (E não da pasta antiga)
+import com.diniz.springbootstudy.dto.OrderDTO01;
 import com.diniz.springbootstudy.entities.Order01;
+import com.diniz.springbootstudy.entities.User;
 import com.diniz.springbootstudy.repositories.OrderRepository01;
+import com.diniz.springbootstudy.repositories.UserRepository;
 import com.diniz.springbootstudy.services.exceptions.DatabaseException;
 import com.diniz.springbootstudy.services.exceptions.ResourceNotFoundException;
 import jakarta.persistence.EntityNotFoundException;
@@ -15,47 +18,22 @@ import java.util.List;
 // ============================================================================
 // SERVICE LAYER ARCHITECTURE
 // ============================================================================
-// HTTP Request
-//       │
-//       ▼
-// OrderController01 (@RestController)
-//       │
-//       ▼
-// OrderService01 (@Service)   ◄── Current class
-//       │
-//       ▼
-// OrderRepository01 (@Repository)
-//       │
-//       ▼
-// Database
-//
-// Responsibilities:
-// - Contains business rules and application logic for Order01.
-// - Receives requests/data from the Controller layer.
-// - Uses the Repository layer to communicate with the database.
-// - Handles persistence exceptions and database integrity constraints.
-// - Converts Order01 entities to OrderDTO01 before returning data
-//   back to the Controller layer.
+// HTTP Request ──> OrderController01 ──> OrderService01 ──> OrderRepository01
 // ============================================================================
 
 /**
  * Service Layer component registered as a Spring Bean.
- *
- * Service indicates that this class holds business logic.
- * Spring automatically manages its lifecycle, allowing it to be injected
- * into controllers or other services.
  */
 @Service
 public class OrderService01 {
 
-    // =========================================================
-    // CONSTRUCTOR INJECTION (Recommended Standard)
-    // =========================================================
-
     private final OrderRepository01 repository;
+    private final UserRepository userRepository; // Injetado para buscar a entidade User quando salvar/atualizar
 
-    public OrderService01(OrderRepository01 repository) {
+    // Injeção de dependências via Construtor
+    public OrderService01(OrderRepository01 repository, UserRepository userRepository) {
         this.repository = repository;
+        this.userRepository = userRepository;
     }
 
     // ========================================================================
@@ -64,9 +42,7 @@ public class OrderService01 {
 
     @Transactional(readOnly = true)
     public List<OrderDTO01> findAll() {
-
         List<Order01> list = repository.findAll();
-
         return list.stream()
                 .map(OrderDTO01::new)
                 .toList();
@@ -74,7 +50,6 @@ public class OrderService01 {
 
     @Transactional(readOnly = true)
     public OrderDTO01 findById(Long id) {
-
         Order01 entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(id));
 
@@ -83,11 +58,16 @@ public class OrderService01 {
 
     @Transactional
     public OrderDTO01 insert(OrderDTO01 dto) {
-
         Order01 entity = new Order01();
 
         entity.setMoment(dto.getMoment());
-        entity.setClient(dto.getClient());
+        entity.setOrderStatus(dto.getOrderStatus());
+
+        // Vincula o cliente recuperando a entidade User pelo ID vindo no UserDTO
+        if (dto.getClient() != null && dto.getClient().getId() != null) {
+            User clientEntity = userRepository.getReferenceById(dto.getClient().getId());
+            entity.setClient(clientEntity);
+        }
 
         entity = repository.save(entity);
 
@@ -96,9 +76,7 @@ public class OrderService01 {
 
     @Transactional
     public OrderDTO01 update(Long id, OrderDTO01 dto) {
-
         try {
-
             Order01 entity = repository.getReferenceById(id);
 
             updateData(entity, dto);
@@ -114,14 +92,12 @@ public class OrderService01 {
 
     @Transactional
     public void delete(Long id) {
-
         if (!repository.existsById(id)) {
             throw new ResourceNotFoundException(id);
         }
 
         try {
             repository.deleteById(id);
-
         } catch (DataIntegrityViolationException e) {
             throw new DatabaseException(e.getMessage());
         }
@@ -131,13 +107,12 @@ public class OrderService01 {
      * Copies the editable fields from the DTO to the entity.
      */
     private void updateData(Order01 entity, OrderDTO01 dto) {
-
         entity.setMoment(dto.getMoment());
-        entity.setClient(dto.getClient());
+        entity.setOrderStatus(dto.getOrderStatus());
 
-        // Quando OrderDTO01 possuir o campo orderStatus,
-        // basta adicionar:
-        //
-        // entity.setOrderStatus(dto.getOrderStatus());
+        if (dto.getClient() != null && dto.getClient().getId() != null) {
+            User clientEntity = userRepository.getReferenceById(dto.getClient().getId());
+            entity.setClient(clientEntity);
+        }
     }
 }

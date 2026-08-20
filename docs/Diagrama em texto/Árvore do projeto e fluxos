@@ -1,0 +1,51 @@
+com.diniz.springbootstudy/
+│
+├── config/
+│   └── TestConfig.java                     <-- Configuração de Seed/Povoamento (H2)
+│
+├── controllers/                            <-- Camada de Recursos / REST API
+│   ├── CategoryController.java
+│   ├── OrderController01.java              <-- Endpoints de Pedidos públicos
+│   ├── ProductController.java              <-- Endpoints de Produtos públicos
+│   ├── UserController.java                 <-- Endpoints de Clientes
+│   └── admin/                              <-- Módulo Administrativo
+│       └── ProductAdminController.java     <-- Endpoints de Gestão (/admin/products)
+│
+├── dto/                                    <-- Data Transfer Objects (Filtros de API)
+│   ├── CategoryDTO.java
+│   ├── OrderDTO01.java
+│   ├── OrderItemDTO.java
+│   ├── ProductDTO.java                     <-- Visão leve (Sem lista de pedidos)
+│   ├── UserDTO.java
+│   └── admin/                              <-- DTOs de Gestão
+│       ├── OrderSummaryAdminDTO.java       <-- Visão resumida de pedidos
+│       └── ProductAdminDTO.java            <-- Visão rica em KPIs
+│
+├── entities/                               <-- Entidades Mapeadas JPA (@Entity)
+│   ├── Category.java
+│   ├── Order01.java
+│   ├── OrderItem.java                     <-- Tabela associativa N:N com atributos
+│   ├── Product.java
+│   ├── User.java
+│   ├── enums/
+│   │   └── OrderStatus.java
+│   └── pk/
+│       └── OrderItemPK.java                <-- Chave Primária Composta (Order + Product)
+│
+├── repositories/                           <-- Acesso a Dados (Spring Data JPA)
+│   ├── CategoryRepository.java
+│   ├── OrderItemRepository.java
+│   ├── OrderRepository01.java
+│   ├── ProductRepository.java
+│   └── UserRepository.java
+│
+└── services/                               <-- Regras de Negócio e Transações
+    ├── CategoryService.java
+    ├── OrderService01.java
+    ├── ProductService.java
+    ├── UserService.java
+    ├── admin/                              <-- Módulo de Serviços Administrativos
+    │   └── ProductAdminService.java
+    └── exceptions/                         <-- Exceções customizadas
+        ├── DatabaseException.java
+        └── ResourceNotFoundException.java

@@ -1,0 +1,20 @@
+# 📊 Diagramas da Arquitetura - Spring Boot E-Commerce
+
+Este documento contém a representação visual da arquitetura, os fluxos de dados e as interações entre as camadas do sistema utilizando a sintaxe **Mermaid**.
+
+---
+
+## 1. Visão Geral da Arquitetura em Camadas (Layered Architecture)
+
+O diagrama abaixo ilustra o fluxo de dados desde a requisição HTTP do cliente até a persistência na base de dados.
+
+```mermaid
+graph TD
+    Client[📱/💻 Cliente / Frontend / Postman] -->|1. Requisição HTTP REST| Controller[RestController Layer<br/>@RestController]
+    Controller -->|2. DTOs| Service[Service Layer<br/>@Service]
+    Service -->|3. Entities| Repository[Repository Layer<br/>@Repository]
+    Repository -->|4. SQL / Spring Data JPA| Database[(💾 Banco de Dados H2 / MySQL)]
+
+    subgraph Isolamento de Contrato
+        DTO[DTO Layer<br/>Filtro de Atributos & Regras de Exposição]
+    end

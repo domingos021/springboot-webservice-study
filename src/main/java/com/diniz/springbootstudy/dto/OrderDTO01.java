@@ -9,6 +9,16 @@ import java.io.Serializable;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
+
+    /*
+    OrderDTO  (Main DTO)
+      │
+      └── contains ──>  Set<OrderItemDTO>  (Child DTO)
+            │
+            └── extracts data from ──> Product / OrderItem
+
+     */
 
 // ============================================================================
 // DATA TRANSFER OBJECT (DTO) LAYER - FIELD FILTER & CONTRACT DEFINITION
@@ -35,7 +45,7 @@ import java.util.Set;
  * by the API: id, moment, orderStatus, client, items and total.
  */
 @JsonRootName(value = "order")
-public class OrderDTO implements Serializable {
+public class OrderDTO01 implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
@@ -58,7 +68,7 @@ public class OrderDTO implements Serializable {
     private Set<OrderItemDTO> items = new HashSet<>();
 
     // Default Constructor (required for JSON deserialization frameworks like Jackson)
-    public OrderDTO() {
+    public OrderDTO01() {
     }
 
     /**
@@ -71,7 +81,7 @@ public class OrderDTO implements Serializable {
      * @param orderStatus Order status Enum
      * @param client UserDTO associated with the Order
      */
-    public OrderDTO(Long id, Instant moment, OrderStatus orderStatus, UserDTO client) {
+    public OrderDTO01(Long id, Instant moment, OrderStatus orderStatus, UserDTO client) {
         this.id = id;
         this.moment = moment;
         this.orderStatus = orderStatus;
@@ -82,11 +92,11 @@ public class OrderDTO implements Serializable {
      * Entity Conversion Constructor (PRODUCTION USE).
      *
      * Selectively maps the desired fields from the JPA {@link Order01} entity
-     * into {@link OrderDTO}.
+     * into {@link OrderDTO01}.
      *
      * @param entity The source Order01 entity retrieved from the database.
      */
-    public OrderDTO(Order01 entity) {
+    public OrderDTO01(Order01 entity) {
         this.id = entity.getId();
         this.moment = entity.getMoment();
         this.orderStatus = entity.getOrderStatus();
@@ -98,9 +108,21 @@ public class OrderDTO implements Serializable {
         /*
          * Populates the items set by converting each OrderItem entity from Order01
          * into an OrderItemDTO.
-         */
+
         if (entity.getItems() != null) {
             entity.getItems().forEach(item -> this.items.add(new OrderItemDTO(item)));
+        }
+
+         */
+
+        /*
+         * Populates the items set by converting each OrderItem entity from Order01
+         * into an OrderItemDTO using Java Stream API.
+         */
+        if (entity.getItems() != null) {
+            this.items = entity.getItems().stream()
+                    .map(OrderItemDTO::new)
+                    .collect(Collectors.toSet());
         }
     }
 
@@ -158,64 +180,3 @@ public class OrderDTO implements Serializable {
         return sum;
     }
 }
-
-/*
- ============================================================================
- DTO AS A FIELD FILTERING PIPELINE
- ============================================================================
-
- Database Table (tb_order_01)
-       │
-       ▼
- [ Order01 Entity ] <-- Full Entity:
-       │
-       │              • id
-       │              • moment
-       │              • orderStatus
-       │              • client  ──> User
-       │              • items   ──> Set<OrderItem>
-       │
-       │ (Conversion via new OrderDTO(entity))
-       ▼
-   [ OrderDTO ]    <-- Filtered API Payload:
-       │
-       │              • id
-       │              • moment
-       │              • orderStatus
-       │              • client (UserDTO)
-       │              • items (Set<OrderItemDTO>)
-       │              • total (Calculated dynamically)
-       │
-       ▼
- OrderResource    <-- Returns OrderDTO
-       │
-       ▼
- HTTP Client      <-- Receives Order JSON
- ============================================================================
-
-
- RELATIONSHIP BETWEEN ORDER AND USER
- ============================================================================
-
-                  1                         N
-        +----------------+          +----------------+
-        |      User      |          |    Order01     |
-        +----------------+          +----------------+
-        | id (PK)        | <--------| client_id (FK) |
-        | name           |          | id (PK)        |
-        | email          |          | moment         |
-        +----------------+          | order_status   |
-                                    +----------------+
-                                          |
-                                          |
-                                   client -> User
-
- One User can have many Orders.
- Each Order belongs to one User.
-
- In the database:
-
-     tb_order_01.client_id ──────────> tb_user.id
-          (Foreign Key)                 (Primary Key)
- ============================================================================
-*/
