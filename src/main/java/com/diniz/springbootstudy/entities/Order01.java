@@ -225,14 +225,94 @@ public class Order01 implements Serializable {
 
     /**
      * Calculates the total value of the order by summing the subtotal of each item.
-     * Useful for business rules inside Service or DTO mapping.
+     * The subtotal of each OrderItem is calculated using price × quantity.
+     *
+     * Order01
+     *    |
+     *    | contains many
+     *    ↓
+     * OrderItem
+     *    |
+     *    | calculates
+     *    ↓
+     * getSubTotal()
+     *    |
+     *    | price * quantity
+     *    ↓
+     * subtotal
+     *    |
+     *    | sum all subtotals
+     *    ↓
+     * getTotal()
+     */
+
+/*
+ * Alternative implementation using a traditional FOR-EACH loop.
+ *
+ * Iterates through each OrderItem in the 'items' collection,
+ * calls getSubTotal() to calculate the item's subtotal,
+ * and accumulates the result into the total sum.
+ *
+public Double getTotal() {
+    double sum = 0.0;
+
+    for (OrderItem item : items) {
+        sum += item.getSubTotal();
+    }
+
+    return sum;
+}
+*/
+
+
+    /*
+     * Stream processing flow:
+     *
+     * items.stream()
+     *        |
+     *        ↓
+     * Places all OrderItems into the processing pipeline (stream).
+     *        |
+     *        ↓
+     * .mapToDouble(OrderItem::getSubTotal)
+     *        |
+     *        ↓
+     * For each OrderItem, executes getSubTotal().
+     *        |
+     *        ↓
+     * Converts each OrderItem into a double value representing its subtotal.
+     *        |
+     *        ↓
+     * .sum()
+     *        |
+     *        ↓
+     * Adds all subtotal values together and returns the final order total.
+     *
+     *
+     * Example:
+     *
+     * items:
+     *
+     * [OrderItem 1] → getSubTotal() → 181.00
+     * [OrderItem 2] → getSubTotal() → 1250.00
+     * [OrderItem 3] → getSubTotal() → 50.00
+     *
+     *
+     * After mapToDouble():
+     *
+     * [181.00, 1250.00, 50.00]
+     *
+     *
+     * After sum():
+     *
+     * 181.00 + 1250.00 + 50.00
+     *
+     * = 1481.00 (Final order total)
      */
     public Double getTotal() {
-        double sum = 0.0;
-        for (OrderItem item : items) {
-            sum += item.getSubTotal();
-        }
-        return sum;
+        return items.stream()
+                .mapToDouble(OrderItem::getSubTotal)
+                .sum();
     }
 
     // =========================================================================

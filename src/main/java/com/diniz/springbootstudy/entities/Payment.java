@@ -40,7 +40,7 @@ public class Payment implements Serializable {
      */
     @OneToOne
     @MapsId
-    @JoinColumn(name = "id")
+    @JoinColumn(name = "order_id")
     private Order01 order;
 
     public Payment() {

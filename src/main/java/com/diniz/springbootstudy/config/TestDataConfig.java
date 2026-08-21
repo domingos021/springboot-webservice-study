@@ -248,6 +248,9 @@ public class TestDataConfig implements CommandLineRunner {
                 u4
         );
 
+        // ====================================================================
+        // CREATE ORDERS01
+        // ====================================================================
         Order01 ord1 = new Order01(
                 null,
                 Instant.parse("2026-08-13T10:30:00Z"),
@@ -304,10 +307,10 @@ public class TestDataConfig implements CommandLineRunner {
 
         // 1. Instantiating and associating the Payment object with the Order entity.
         // JPA/Hibernate automatically assigns the target Order ID via @MapsId.
-        Payment pay = new Payment(null, Instant.parse("2026-08-13T21:00:00Z"), ord1);
+        Payment pay1 = new Payment(null, Instant.parse("2026-08-13T21:00:00Z"), ord1);
 
         // 2. Setting the payment reference on the order entity to keep bidirectional state synchronized in memory.
-        ord1.setPayment(pay);
+        ord1.setPayment(pay1);
 
         // 3. Saving the parent Order entity.
         // CascadeType.ALL configured on @OneToOne relationship automatically persists the dependent Payment entity.

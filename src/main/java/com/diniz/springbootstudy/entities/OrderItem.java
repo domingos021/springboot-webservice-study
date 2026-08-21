@@ -125,6 +125,7 @@ public class OrderItem implements Serializable {
         this.price = price;
     }
 
+    // Calculates the subtotal of a single order item (price × quantity)
     public Double getSubTotal() {
         return (price != null && quantity != null) ? price * quantity : 0.0;
     }
