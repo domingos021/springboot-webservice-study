@@ -1,9 +1,6 @@
 package com.diniz.springbootstudy.dto;
 
 import com.diniz.springbootstudy.entities.User;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -21,6 +18,11 @@ import java.io.Serializable;
 // - Security & Data Privacy: Omits sensitive fields (e.g., password) from JSON responses.
 // - API Decoupling: Schema changes in database tables won't directly break the client contract.
 // - Prevents Serialization Loops: Avoids infinite JSON recursion on JPA relationships (@OneToMany).
+//
+// Note on Validations:
+// Bean Validation annotations (@NotBlank, @Email, @Size, etc.) are intentionally
+// omitted here because this class is used strictly as an OUTPUT/RESPONSE payload.
+// Validations should only exist on INPUT/REQUEST DTOs (e.g., UserInsertDTO).
 // ============================================================================
 
 /**
@@ -35,16 +37,8 @@ public class UserDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private Long id;
-
-    @NotBlank(message = "Name is required")
-    @Size(min = 3, max = 80, message = "Name must be between 3 and 80 characters")
     private String name;
-
-    @NotBlank(message = "Email is required")
-    @Email(message = "Please enter a valid email address")
     private String email;
-
-    @NotBlank(message = "Phone is required")
     private String phone;
 
     // Default Constructor (required for JSON deserialization frameworks like Jackson)
@@ -145,6 +139,7 @@ public class UserDTO implements Serializable {
        │              • email
        │              • phone
        │              [ password is STRIPPED OUT ]
+       │              [ no validation annotations needed on output ]
        ▼
  UserController   <-- Returns UserDTO wrapped inside ResponseEntity<UserDTO>
        │

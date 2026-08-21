@@ -184,7 +184,37 @@ public class OrderDTO01 implements Serializable {
      * Calculates the total price of the order dynamically by summing up
      * the subtotal of each OrderItemDTO in the items collection.
      *
-     * Jackson automatically serializes this method call into a 'total' key in the JSON response.
+     *
+     *
+     * Banco de dados
+     *       |
+     *       ↓
+     * Order01 (Entity)
+     *       |
+     *       ↓
+     * OrderDTO01(Order01 entity)
+     *       |
+     *       ↓
+     * Converte OrderItem → OrderItemDTO
+     *       |
+     *       ↓
+     * Controller retorna OrderDTO01
+     *       |
+     *       ↓
+     * Jackson serializa para JSON
+     *       |
+     *       ↓
+     * Encontra getTotal()
+     *       |
+     *       ↓
+     * Calcula:
+     *       OrderItemDTO 1 → getSubTotal()
+     *       OrderItemDTO 2 → getSubTotal()
+     *       OrderItemDTO 3 → getSubTotal()
+     *       |
+     *       ↓
+     * Cria:
+     *       "total": 1431.0
      */
     public Double getTotal() {
         double sum = 0.0;

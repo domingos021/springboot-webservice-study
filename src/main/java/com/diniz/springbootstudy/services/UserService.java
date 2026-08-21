@@ -2,6 +2,7 @@ package com.diniz.springbootstudy.services;
 
 import com.diniz.springbootstudy.dto.UserDTO;
 import com.diniz.springbootstudy.dto.UserInsertDTO;
+import com.diniz.springbootstudy.dto.UserUpdateDTO;
 import com.diniz.springbootstudy.entities.User;
 import com.diniz.springbootstudy.repositories.UserRepository;
 import com.diniz.springbootstudy.services.exceptions.DatabaseException;
@@ -133,7 +134,7 @@ public class UserService {
     }
 
     @Transactional
-    public UserDTO update(Long id, UserDTO dto) {
+    public UserDTO update(Long id, UserUpdateDTO dto) {
         /*
          * Uses getReferenceById(id) instead of findById(id) to avoid an extra SELECT database query.
          * JPA prepares a monitored entity proxy and only executes the UPDATE query when transaction commits.
@@ -171,8 +172,8 @@ public class UserService {
         }
     }
 
-    // Helper method to copy non-sensitive fields from DTO to Entity
-    private void updateData(User entity, UserDTO dto) {
+    // Helper method to copy non-sensitive fields from UserUpdateDTO to Entity (excluding password)
+    private void updateData(User entity, UserUpdateDTO dto) {
         entity.setName(dto.getName());
         entity.setEmail(dto.getEmail());
         entity.setPhone(dto.getPhone());
@@ -203,28 +204,3 @@ public class UserService {
  3. Better unit testability.
  ============================================================================
 */
-
-/*
- Client (Postman / Frontend)
-           │
-           │ Sends HTTP POST /users
-           │ Body JSON: { "name": "Domingos", "password": "123" }
-           ▼
-   UserController
-           │
-           │ Passes UserInsertDTO
-           ▼
-    UserService ──────► Calls passwordEncoder.encode("123")
-           │                                 │
-           │ Receives Hash                   ▼
-           │ "$2a$10$f398Xz..." ◄────────────┘
-           │
-           │ Sets hashed password on Entity
-           ▼
-   UserRepository
-           │
-           │ Saves Entity into Database
-           ▼
-  Database (tb_user)
-  Column 'password' stores: "$2a$10$f398Xz..." (TEXTO PURO NUNCA É SALVO!)
- */

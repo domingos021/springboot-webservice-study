@@ -9,21 +9,20 @@ import java.io.Serial;
 import java.io.Serializable;
 
 // ============================================================================
-// DATA TRANSFER OBJECT (DTO) LAYER - USER CREATION INPUT CONTRACT
+// DATA TRANSFER OBJECT (DTO) LAYER - USER UPDATE INPUT CONTRACT
 // ============================================================================
 // Core Purpose:
-// Represents the incoming request body payload for creating new users (POST /users).
+// Represents the incoming request body payload for updating existing users (PUT /users/{id}).
 //
-// Key Differences from UserDTO:
-// - Excludes 'id': The ID does not exist prior to database insertion (auto-generated).
-// - Includes 'password': Captures the raw password sent by the client so that
-//   the UserService can encrypt it via PasswordEncoder before persisting.
+// Key Differences from UserInsertDTO:
+// - Excludes 'password': Password updates must be handled via a dedicated security endpoint.
+// - Excludes 'id': The target user ID is provided via URL path variable (@PathVariable).
 // ============================================================================
 
 /**
- * Data Transfer Object for receiving user creation data payloads (HTTP POST).
+ * Data Transfer Object for receiving user update data payloads (HTTP PUT).
  */
-public class UserInsertDTO implements Serializable {
+public class UserUpdateDTO implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
@@ -43,46 +42,21 @@ public class UserInsertDTO implements Serializable {
     )
     private String phone;
 
-    /**
-     * PASSWORD VALIDATION POLICY:
-     * - @NotBlank: Password field cannot be null, empty, or whitespace.
-     * - @Size: Must be between 8 and 20 characters long.
-     * - @Pattern (Strong Password Regex):
-     *     (?=.*[0-9])       -> At least one digit (0-9)
-     *     (?=.*[a-z])       -> At least one lowercase letter (a-z)
-     *     (?=.*[A-Z])       -> At least one uppercase letter (A-Z)
-     *     (?=.*[@#$%^&+=!]) -> At least one special character
-     *
-     * EXAMPLES OF ACCEPTED PASSWORDS:
-     * - "Senha123!"
-     * - "Admin2026@"
-     * - "Diniz#85"
-     */
-    @NotBlank(message = "Password is required")
-    @Size(min = 8, max = 20, message = "Password must be between 8 and 20 characters")
-    @Pattern(
-            regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!]).*$",
-            message = "Password must contain at least one digit, one lowercase, one uppercase letter, and one special character"
-    )
-    private String password;
-
     // Default Constructor (required for JSON deserialization frameworks like Jackson)
-    public UserInsertDTO() {
+    public UserUpdateDTO() {
     }
 
     /**
      * Parameterized Constructor.
      *
-     * @param name User Name
+     * @param name  User Name
      * @param email User Email
      * @param phone User Phone
-     * @param password Raw User Password
      */
-    public UserInsertDTO(String name, String email, String phone, String password) {
+    public UserUpdateDTO(String name, String email, String phone) {
         this.name = name;
         this.email = email;
         this.phone = phone;
-        this.password = password;
     }
 
     // ========================================================================
@@ -111,13 +85,5 @@ public class UserInsertDTO implements Serializable {
 
     public void setPhone(String phone) {
         this.phone = phone;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
     }
 }

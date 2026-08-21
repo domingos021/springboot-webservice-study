@@ -2,6 +2,7 @@ package com.diniz.springbootstudy.controllers;
 
 import com.diniz.springbootstudy.dto.UserDTO;
 import com.diniz.springbootstudy.dto.UserInsertDTO;
+import com.diniz.springbootstudy.dto.UserUpdateDTO;
 import com.diniz.springbootstudy.services.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -133,26 +134,108 @@ public class UserController {
     // ========================================================================
     @PostMapping
     public ResponseEntity<UserDTO> insert(@Valid @RequestBody UserInsertDTO dto) {
+
         /*
          * @Valid:
-         * Triggers Bean Validation rules defined inside UserInsertDTO before executing the method body.
+         * Executes Bean Validation rules defined inside UserInsertDTO before
+         * entering the method body.
+         *
+         * Example:
+         * - @NotBlank
+         * - @Email
+         * - @Size
+         *
          *
          * @RequestBody:
-         * Deserializes the incoming JSON body payload directly into the UserInsertDTO object.
+         * Converts the incoming JSON request body into a UserInsertDTO object.
          *
-         * ServletUriComponentsBuilder:
-         * Standard Spring helper to generate the HTTP 'Location' header containing the URI
-         * of the newly created resource (e.g., http://localhost:8080/users/3).
+         * Example:
+         *
+         * JSON request
+         *       |
+         *       ↓
+         * UserInsertDTO object
+         *
+         *
+         * service.insert(dto):
+         * Sends the DTO to the Service layer, where the business logic is executed:
+         *
+         * UserInsertDTO
+         *       |
+         *       ↓
+         * Service
+         *       |
+         *       ↓
+         * User Entity
+         *       |
+         *       ↓
+         * Database persistence
+         *       |
+         *       ↓
+         * UserDTO with generated ID
          */
         UserDTO newDto = service.insert(dto);
+
+
+        /*
+         * Creates the URI of the newly created resource.
+         *
+         * ServletUriComponentsBuilder.fromCurrentRequest()
+         *       |
+         *       ↓
+         * Gets the current request URI.
+         *
+         * Example:
+         * POST http://localhost:8080/users
+         *
+         *
+         * .path("/{id}")
+         *       |
+         *       ↓
+         * Adds a dynamic path parameter.
+         *
+         * Result:
+         * http://localhost:8080/users/{id}
+         *
+         *
+         * .buildAndExpand(newDto.getId())
+         *       |
+         *       ↓
+         * Replaces {id} with the generated database ID.
+         *
+         * Example:
+         * {id} → 3
+         *
+         * Result:
+         * http://localhost:8080/users/3
+         *
+         *
+         * .toUri()
+         *       |
+         *       ↓
+         * Converts the final URL into a URI object.
+         *
+         *
+         * This URI will be used in the HTTP Location header to indicate
+         * where the newly created resource can be accessed.
+         */
         URI uri = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
                 .buildAndExpand(newDto.getId())
                 .toUri();
 
+
         /*
-         * ResponseEntity.created(uri) generates HTTP Status 201 (Created)
-         * with the Location header and returns the filtered UserDTO in the response body.
+         * ResponseEntity.created(uri):
+         *
+         * Creates an HTTP response with status code 201 Created.
+         *
+         * Adds the Location header:
+         *
+         * Location: http://localhost:8080/users/3
+         *
+         * The response body contains the filtered UserDTO instead of exposing
+         * the JPA Entity directly.
          */
         return ResponseEntity.created(uri).body(newDto);
     }
@@ -164,13 +247,15 @@ public class UserController {
     // Status Code: 200 OK
     // ========================================================================
     @PutMapping(value = "/{id}")
-    public ResponseEntity<UserDTO> update(@PathVariable Long id, @Valid @RequestBody UserDTO dto) {
+    public ResponseEntity<UserDTO> update(@PathVariable Long id, @Valid @RequestBody UserUpdateDTO dto) {
         /*
          * @Valid:
-         * Triggers Bean Validation rules defined inside UserDTO before executing the method body.
+         * Triggers Bean Validation rules defined inside UserUpdateDTO before executing the method body.
          *
-         * Replaces or updates fields of an existing user resource identified by 'id'.
-         * Returns HTTP 200 (OK) with the updated UserDTO payload.
+         * Replaces or updates fields (name, email, phone) of an existing user resource identified by 'id'.
+         * Note: Password updates are excluded from this endpoint for security purposes.
+         *
+         * Returns HTTP 200 (OK) with the updated UserDTO payload (containing complete user data without password).
          */
         UserDTO updatedDto = service.update(id, dto);
         return ResponseEntity.ok().body(updatedDto);
