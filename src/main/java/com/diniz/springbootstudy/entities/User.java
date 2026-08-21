@@ -1,7 +1,6 @@
 package com.diniz.springbootstudy.entities;
 
 import com.diniz.springbootstudy.entities.exemp.Order;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -39,7 +38,6 @@ public class User implements Serializable {
 
     private String phone;
 
-    @JsonIgnore // <-- Impede a exibição da senha nas respostas JSON
     private String password;
 
     /*
@@ -90,7 +88,6 @@ public class User implements Serializable {
      * *
      * *http://localhost:8080/h2-console
      */
-    @JsonIgnore // <-- Bloqueia a referência circular no GET /orders
     @OneToMany(mappedBy = "client")
     private List<Order> orders = new ArrayList<>();
 
