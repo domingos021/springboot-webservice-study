@@ -1,5 +1,6 @@
 package com.diniz.springbootstudy.entities;
 
+import com.diniz.springbootstudy.entities.exemp.Order;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

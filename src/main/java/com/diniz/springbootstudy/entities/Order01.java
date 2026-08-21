@@ -2,8 +2,6 @@ package com.diniz.springbootstudy.entities;
 
 import com.diniz.springbootstudy.entities.converters.OrderStatusConverter;
 import com.diniz.springbootstudy.entities.enums.OrderStatus;
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonRootName;
 import jakarta.persistence.*;
 
 import java.io.Serial;
@@ -56,7 +54,7 @@ import java.util.Set;
  *     | name           |           | id (PK)        |           | product_id(PK) |
  *     | email          |           | moment         |           | quantity       |
  *     | phone          |           | orderStatus    |           | price          |
- *     +----------------+           +----------------+           +----------------+
+ *     +----------------+-----------+----------------+-----------+----------------+
  *
  *   Many Orders (Order01) belong to the same Client (User).
  *   Each Order (Order01) belongs to only one Client (User).
@@ -65,8 +63,7 @@ import java.util.Set;
  * =======================================================================================
  */
 @Entity
-@Table(name = "tb_order_01") // Mapped to tb_order_01 to avoid conflicting with the original Order class
-@JsonRootName(value = "order01")
+@Table(name = "tb_order_01")
 public class Order01 implements Serializable {
 
     @Serial
@@ -81,13 +78,7 @@ public class Order01 implements Serializable {
 
     /**
      * Instant when the order was placed.
-     * Mapped and formatted in JSON following the ISO-8601 / UTC standard ("yyyy-MM-dd'T'HH:mm:ss'Z'").
      */
-    @JsonFormat(
-            shape = JsonFormat.Shape.STRING,
-            pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'",
-            timezone = "GMT"
-    )
     private Instant moment;
 
     /**
@@ -133,6 +124,35 @@ public class Order01 implements Serializable {
      */
     @OneToMany(mappedBy = "id.order")
     private Set<OrderItem> items = new HashSet<>();
+
+    /*
+     * One-to-One relationship mapping with the Payment entity.
+     *
+     * The 'payment' field is the inverse (non-owning) side of the relationship.
+     * The 'mappedBy = "order"' attribute indicates that the 'order' field
+     * in the Payment entity is the owning side and is responsible for
+     * managing the relationship.
+     *
+     * The Payment entity uses @MapsId, meaning its primary key is shared
+     * with the Order01 entity. As a result, each Order01 can have at most
+     * one Payment, and both entities share the same identifier.
+     *
+     * CascadeType.ALL propagates all persistence operations (persist, merge,
+     * remove, refresh, and detach) from Order01 to its associated Payment.
+     */
+
+    /*
+     * In this case, Payment and Order share the same primary key value.
+     *
+     * This is not caused by CascadeType.ALL, but by the @MapsId annotation.
+     * The @MapsId tells JPA that the Payment entity uses the Order entity's
+     * primary key as its own primary key.
+     *
+     * CascadeType.ALL only propagates persistence operations from Order to Payment,
+     * such as saving, updating, and removing the associated Payment.
+     */
+    @OneToOne(mappedBy = "order", cascade = CascadeType.ALL)
+    private Payment payment;
 
     /**
      * Default no-args constructor required by JPA/Hibernate.
@@ -191,13 +211,21 @@ public class Order01 implements Serializable {
         this.client = client;
     }
 
+    public Payment getPayment() {
+        return payment;
+    }
+
+    public void setPayment(Payment payment) {
+        this.payment = payment;
+    }
+
     public Set<OrderItem> getItems() {
         return items;
     }
 
     /**
      * Calculates the total value of the order by summing the subtotal of each item.
-     * Jackson automatically includes this field as 'total' in the JSON response.
+     * Useful for business rules inside Service or DTO mapping.
      */
     public Double getTotal() {
         double sum = 0.0;

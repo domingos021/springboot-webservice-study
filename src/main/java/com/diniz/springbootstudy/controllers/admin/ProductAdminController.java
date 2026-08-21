@@ -33,6 +33,7 @@ public class ProductAdminController {
     }
 
     /**
+     * http://localhost:8080/admin/products
      * Endpoint: Find All Products with Administrative KPIs
      * GET /admin/products
      */

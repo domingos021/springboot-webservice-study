@@ -12,13 +12,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
     /*
-    OrderDTO  (Main DTO)
+    OrderDTO01  (Main DTO)
       │
-      └── contains ──>  Set<OrderItemDTO>  (Child DTO)
-            │
-            └── extracts data from ──> Product / OrderItem
-
-     */
+      ├── contains ──>  Set<OrderItemDTO>  (Child DTO)
+      │                   │
+      │                   └── extracts data from ──> Product / OrderItem
+      │
+      └── contains ──>  PaymentDTO          (Dependent 1:1 DTO)
+    */
 
 // ============================================================================
 // DATA TRANSFER OBJECT (DTO) LAYER - FIELD FILTER & CONTRACT DEFINITION
@@ -32,9 +33,9 @@ import java.util.stream.Collectors;
 // - Custom Field Filtering: Selectively returns only client-facing attributes.
 // - API Decoupling: The DTO separates the API contract from the JPA Entity.
 // - Prevents Serialization Loops: Avoids infinite JSON recursion caused by
-//   bidirectional JPA relationships (@OneToMany / @ManyToOne).
-// - Controls Relationships: Instead of exposing the complete User entity,
-//   the DTO can expose only the User information required by the API.
+//   bidirectional JPA relationships (@OneToMany / @ManyToOne / @OneToOne).
+// - Controls Relationships: Exposes nested DTOs (UserDTO, PaymentDTO, OrderItemDTO)
+//   instead of exposing raw domain entities.
 // ============================================================================
 
 /**
@@ -42,7 +43,7 @@ import java.util.stream.Collectors;
  * for API requests and responses.
  *
  * Filters the {@link Order01} entity to expose only the fields required
- * by the API: id, moment, orderStatus, client, items and total.
+ * by the API: id, moment, orderStatus, client, items, payment and total.
  */
 @JsonRootName(value = "order")
 public class OrderDTO01 implements Serializable {
@@ -67,6 +68,12 @@ public class OrderDTO01 implements Serializable {
      */
     private Set<OrderItemDTO> items = new HashSet<>();
 
+    /*
+     * PaymentDTO representing the associated 1:1 payment details.
+     * Isolates the Payment entity and avoids circular serialization loop.
+     */
+    private PaymentDTO payment;
+
     // Default Constructor (required for JSON deserialization frameworks like Jackson)
     public OrderDTO01() {
     }
@@ -80,12 +87,14 @@ public class OrderDTO01 implements Serializable {
      * @param moment Order date and time
      * @param orderStatus Order status Enum
      * @param client UserDTO associated with the Order
+     * @param payment PaymentDTO associated with the Order
      */
-    public OrderDTO01(Long id, Instant moment, OrderStatus orderStatus, UserDTO client) {
+    public OrderDTO01(Long id, Instant moment, OrderStatus orderStatus, UserDTO client, PaymentDTO payment) {
         this.id = id;
         this.moment = moment;
         this.orderStatus = orderStatus;
         this.client = client;
+        this.payment = payment;
     }
 
     /**
@@ -107,22 +116,19 @@ public class OrderDTO01 implements Serializable {
 
         /*
          * Populates the items set by converting each OrderItem entity from Order01
-         * into an OrderItemDTO.
-
-        if (entity.getItems() != null) {
-            entity.getItems().forEach(item -> this.items.add(new OrderItemDTO(item)));
-        }
-
-         */
-
-        /*
-         * Populates the items set by converting each OrderItem entity from Order01
          * into an OrderItemDTO using Java Stream API.
          */
         if (entity.getItems() != null) {
             this.items = entity.getItems().stream()
                     .map(OrderItemDTO::new)
                     .collect(Collectors.toSet());
+        }
+
+        /*
+         * Maps the 1:1 Payment association into PaymentDTO if present.
+         */
+        if (entity.getPayment() != null) {
+            this.payment = new PaymentDTO(entity.getPayment());
         }
     }
 
@@ -164,6 +170,14 @@ public class OrderDTO01 implements Serializable {
 
     public Set<OrderItemDTO> getItems() {
         return items;
+    }
+
+    public PaymentDTO getPayment() {
+        return payment;
+    }
+
+    public void setPayment(PaymentDTO payment) {
+        this.payment = payment;
     }
 
     /**

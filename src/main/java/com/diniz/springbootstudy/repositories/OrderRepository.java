@@ -1,6 +1,6 @@
 package com.diniz.springbootstudy.repositories;
 
-import com.diniz.springbootstudy.entities.Order;
+import com.diniz.springbootstudy.entities.exemp.Order;
 import com.diniz.springbootstudy.entities.Order01;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

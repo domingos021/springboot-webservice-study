@@ -1,18 +1,8 @@
 package com.diniz.springbootstudy.config;
 
-import com.diniz.springbootstudy.entities.Category;
-import com.diniz.springbootstudy.entities.Order;
-import com.diniz.springbootstudy.entities.Order01;
-import com.diniz.springbootstudy.entities.OrderItem;
-import com.diniz.springbootstudy.entities.Product;
-import com.diniz.springbootstudy.entities.User;
+import com.diniz.springbootstudy.entities.*;
 import com.diniz.springbootstudy.entities.enums.OrderStatus;
-import com.diniz.springbootstudy.repositories.CategoryRepository;
-import com.diniz.springbootstudy.repositories.OrderItemRepository;
-import com.diniz.springbootstudy.repositories.OrderRepository;
-import com.diniz.springbootstudy.repositories.OrderRepository01;
-import com.diniz.springbootstudy.repositories.ProductRepository;
-import com.diniz.springbootstudy.repositories.UserRepository;
+import com.diniz.springbootstudy.repositories.*;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -40,29 +30,17 @@ import java.util.Arrays;
  * <p>
  * Responsibilities:
  * - Configures settings specific to the "test" Spring profile.
- * // * - Executes database seeding via {@link CommandLineRunner} at application startup.
- * // * - Isolates test data preparation logic from production environments.
+ * - Executes database seeding via {@link CommandLineRunner} at application startup.
+ * - Isolates test data preparation logic from production environments.
  */
 @Configuration
 @Profile("test")
 public class TestDataConfig implements CommandLineRunner {
 
-    /*
-     // =========================================================
-     // FIELD INJECTION (Attribute Injection) - NOT RECOMMENDED
-     // =========================================================
-     // @Autowired
-     // private UserRepository userRepository;
-    */
-
     // =========================================================
     // CONSTRUCTOR INJECTION (Recommended Standard)
     // =========================================================
-    // Injects dependencies through the constructor.
-    // Enables 'final' fields and makes the class easier to test.
-    // =========================================================
     private final UserRepository userRepository;
-    private final OrderRepository orderRepository;
     private final OrderRepository01 orderRepository01;
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
@@ -71,16 +49,13 @@ public class TestDataConfig implements CommandLineRunner {
 
     public TestDataConfig(
             UserRepository userRepository,
-            OrderRepository orderRepository,
             OrderRepository01 orderRepository01,
             CategoryRepository categoryRepository,
             ProductRepository productRepository,
             OrderItemRepository orderItemRepository,
             PasswordEncoder passwordEncoder
     ) {
-
         this.userRepository = userRepository;
-        this.orderRepository = orderRepository;
         this.orderRepository01 = orderRepository01;
         this.categoryRepository = categoryRepository;
         this.productRepository = productRepository;
@@ -155,17 +130,12 @@ public class TestDataConfig implements CommandLineRunner {
                 100.99,
                 ""
         );
+
         // Initial save for products
         productRepository.saveAll(Arrays.asList(p1, p2, p3, p4, p5));
 
         // Associating products with categories (Many-to-Many relationship)
-        /*
-         * We access the Product object (p1).
-         * The getCategories() method returns the Set<Category> associated with the product.
-         * Then, we add the category cat1 to that collection, creating the relationship
-         * between product p1 and category cat1.
-         */
-        p1.getCategories().add(cat1); // association between objects (products and categories)
+        p1.getCategories().add(cat1);
         p2.getCategories().add(cat2);
         p2.getCategories().add(cat3);
         p3.getCategories().add(cat3);
@@ -246,28 +216,6 @@ public class TestDataConfig implements CommandLineRunner {
         // Saving mock users into the database
         userRepository.saveAll(Arrays.asList(u1, u2, u3, u4, u5, u6, u7, u8));
 
-        /*
-         * Instant.now() captures the current date and time from the system clock.
-         *
-         * Order o1 = new Order(null, Instant.now(), u1);
-         * Order o2 = new Order(null, Instant.now(), u2);
-         * Order o3 = new Order(null, Instant.now(), u3);
-         * Order o4 = new Order(null, Instant.now(), u4);
-         */
-
-        /*
-         * Here, we use Instant.parse() to create specific timestamps
-         * using the ISO 8601 format.
-         *
-         * Example:
-         *
-         * 2026-08-13T10:30:00Z
-         * │         │        │
-         * │         │        └── Z = UTC
-         * │         └─────────── Time
-         * └───────────────────── Date
-         */
-
         // ====================================================================
         // CREATE ORDERS
         // ====================================================================
@@ -276,7 +224,7 @@ public class TestDataConfig implements CommandLineRunner {
                 null,
                 Instant.parse("2026-08-13T10:30:00Z"),
                 OrderStatus.PAID,
-                u1 // this order is associated to the client u1
+                u1
         );
 
         Order01 o2 = new Order01(
@@ -299,13 +247,6 @@ public class TestDataConfig implements CommandLineRunner {
                 OrderStatus.DELIVERED,
                 u4
         );
-
-        // Saving mock orders into the database using OrderRepository01
-        orderRepository01.saveAll(Arrays.asList(o1, o2, o3, o4));
-
-        // ====================================================================
-        // CREATE ORDERS 01
-        // ====================================================================
 
         Order01 ord1 = new Order01(
                 null,
@@ -335,43 +276,19 @@ public class TestDataConfig implements CommandLineRunner {
                 u8
         );
 
-        orderRepository01.saveAll(Arrays.asList(ord1, ord2, ord3, ord4));
+        // Saving all mock orders into the database
+        orderRepository01.saveAll(Arrays.asList(o1, o2, o3, o4, ord1, ord2, ord3, ord4));
 
         // ====================================================================
         // CREATE ORDER ITEMS
         // ====================================================================
 
-        /*
-         * OrderItem
-         * ├── id (OrderItemPk)  ← Chave composta (@EmbeddedId)
-         * │     ├── Order01 order    (FK → tb_order)
-         * │     └── Product product  (FK → tb_product)
-         * │
-         * ├── Double price
-         * └── Integer quantity
-         *
-         * Order01
-         * ├── id
-         * ├── moment
-         * ├── status (OrderStatus)
-         * └── client (User)
-         *
-         * Product
-         * ├── id
-         * ├── name
-         * ├── description
-         * ├── price
-         * └── imgUrl
-         */
-
-        // Items associated with orders o1, o2, o3, o4
         OrderItem oi1 = new OrderItem(o1, p1, p1.getPrice(), 2);
         OrderItem oi2 = new OrderItem(o1, p3, p3.getPrice(), 1);
         OrderItem oi3 = new OrderItem(o2, p3, p3.getPrice(), 2);
         OrderItem oi4 = new OrderItem(o3, p5, p5.getPrice(), 2);
         OrderItem oi5 = new OrderItem(o4, p2, p2.getPrice(), 1);
 
-        // Items associated with orders ord1, ord2, ord3, ord4
         OrderItem oi6 = new OrderItem(ord1, p1, p1.getPrice(), 2);
         OrderItem oi7 = new OrderItem(ord1, p3, p3.getPrice(), 1);
         OrderItem oi8 = new OrderItem(ord2, p3, p3.getPrice(), 2);
@@ -380,59 +297,24 @@ public class TestDataConfig implements CommandLineRunner {
 
         // Saving mock order items into the database
         orderItemRepository.saveAll(Arrays.asList(oi1, oi2, oi3, oi4, oi5, oi6, oi7, oi8, oi9, oi10));
+
+        // ====================================================================
+        // CREATE PAYMENT (1:1 RELATIONSHIP WITH ORDER)
+        // ====================================================================
+
+        // 1. Instantiating and associating the Payment object with the Order entity.
+        // JPA/Hibernate automatically assigns the target Order ID via @MapsId.
+        Payment pay = new Payment(null, Instant.parse("2026-08-13T21:00:00Z"), ord1);
+
+        // 2. Setting the payment reference on the order entity to keep bidirectional state synchronized in memory.
+        ord1.setPayment(pay);
+
+        // 3. Saving the parent Order entity.
+        // CascadeType.ALL configured on @OneToOne relationship automatically persists the dependent Payment entity.
+        orderRepository01.save(ord1);
+
+        // ====================================================================
+        // DATABASE SEEDING COMPLETE
+        // ====================================================================
     }
 }
-
-
-/*
-============================================================================
-APPLICATION STARTUP & PROFILE EXECUTION FLOW
-============================================================================
-
-Application Startup (mvn spring-boot:run)
-       │
-       ▼
-Read application.properties
-       │
-       ▼
-Active Profile = "test"?
-       │
-       ├──► NO ──► Skip TestDataConfig Bean creation
-       │
-       └──► YES
-              │
-              ▼
-       Instantiate TestDataConfig
-              │
-              ▼
-       Inject UserRepository, OrderRepository, CategoryRepository, ProductRepository, PasswordEncoder, OrderItemRepository
-              │
-              ▼
-       Trigger CommandLineRunner.run()
-              │
-              ▼
-       Create Category objects & Save
-              │
-              ▼
-       Create Product objects & Save
-              │
-              ▼
-       Associate Products <-> Categories & Save
-              │
-              ▼
-       Create User objects & Encrypt Passwords via BCrypt & Save
-              │
-              ▼
-       Create Order objects & Save
-              │
-              ▼
-       Create Order01 objects & Save
-              │
-              ▼
-       Create OrderItem objects & Save
-              │
-              ▼
-       H2 Database fully populated
-
-============================================================================
-*/

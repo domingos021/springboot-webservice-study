@@ -1,5 +1,6 @@
-package com.diniz.springbootstudy.entities;
+package com.diniz.springbootstudy.entities.exemp;
 
+import com.diniz.springbootstudy.entities.User;
 import com.diniz.springbootstudy.entities.enums.OrderStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonRootName;
