@@ -204,16 +204,74 @@ public class UserService {
         }
     }
 
+    /*
+     * Updates an existing User's editable fields (Name, Email, Phone) based on the provided UserUpdateDTO.
+     *
+     * Password updates are intentionally excluded from this operation.
+     *
+     * END-TO-END DATA FLOW (UPDATE):
+     *
+     * [ Client / Front-end ]
+     *        │
+     *        │ 1. Sends JSON with updated fields (UserUpdateDTO)
+     *        ▼
+     *  UserUpdateDTO (Input)
+     *        │
+     *        │ 2. Service gets JPA Proxy reference via getReferenceById(id)
+     *        │    and updates fields in-place via mapper.updateEntityFromDTO(...)
+     *        ▼
+     *   User Entity (Managed in JPA Context)
+     *        │
+     *        │ 3. JPA Dirty Checking detects modifications and automatically
+     *        │    flushes UPDATE query to DB upon transaction commit
+     *        ▼
+     *     UserDTO (Output / Return)
+     *        │
+     *        │ 4. Reaches Controller and becomes HTTP 200 OK response
+     *        ▼
+     * [ Client / Front-end ]
+     */
+    //        ▲                   ▲
+    //        │                   │
+    //     OUTPUT               INPUTS
+    // (Response / HTTP 200)   (Path Variable & Request Body)
     @Transactional
     public UserDTO update(Long id, UserUpdateDTO dto) {
+
+        /*
+         * UPDATE PIPELINE:
+         *
+         * 1. repository.getReferenceById(id):
+         *    Instantiates a JPA managed Proxy entity for the given ID without querying DB immediately.
+         *
+         * 2. mapper.updateEntityFromDTO(dto, entity):
+         *    Copies pre-validated fields from the DTO directly into the managed entity in memory.
+         *
+         * 3. JPA Dirty Checking & repository.save(entity):
+         *    Hibernate monitors the managed entity and automatically flushes changes to DB.
+         *
+         * 4. catch Blocks:
+         *    - EntityNotFoundException: Triggers when the requested ID does not exist in DB (returns 404).
+         *    - DataIntegrityViolationException: Prevents updating email to one that already belongs to another user.
+         */
         try {
+            // STEP 1: Get JPA managed reference (Proxy) for the target user entity
             User entity = repository.getReferenceById(id);
+
+            // STEP 2: Copy updated fields (Name, Email, Phone) from DTO into managed entity in memory
             mapper.updateEntityFromDTO(dto, entity);
+
+            // STEP 3: Persist changes (JPA Dirty Checking handles the UPDATE query automatically)
             entity = repository.save(entity);
+
+            // STEP 4: Convert updated entity into a safe UserDTO response and return to client
             return mapper.toDTO(entity);
+
         } catch (EntityNotFoundException e) {
+            // Intercepts non-existing ID errors and translates to domain ResourceNotFoundException (HTTP 404)
             throw new ResourceNotFoundException(id);
         } catch (DataIntegrityViolationException e) {
+            // Protects against database-level unique constraint violations (e.g., updating email to an existing one)
             throw new DatabaseException("Email already exists: " + dto.getEmail());
         }
     }
