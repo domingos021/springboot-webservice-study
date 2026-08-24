@@ -2,23 +2,14 @@ package com.diniz.springbootstudy.dto;
 
 import com.diniz.springbootstudy.entities.Category;
 import com.fasterxml.jackson.annotation.JsonRootName;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 import java.io.Serial;
 import java.io.Serializable;
 
 // ============================================================================
 // DATA TRANSFER OBJECT (DTO) LAYER - FIELD FILTER & CONTRACT DEFINITION
-// ============================================================================
-// Core Purpose:
-// The DTO acts as an EXPLICIT FIELD FILTER over the JPA Entity (@Entity).
-// You (the developer) decide exactly which fields are exposed and returned
-// to the client in HTTP responses.
-//
-// Key Functions:
-// - Custom Field Filtering: Selectively returns only client-facing attributes.
-// - API Decoupling: The DTO separates the API contract from the JPA Entity.
-// - Prevents exposing unnecessary database fields.
-// - Defines the contract between the API and its consumers.
 // ============================================================================
 
 /**
@@ -35,16 +26,17 @@ public class CategoryDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private Long id;
+
+    @NotBlank(message = "Field 'name' is required")
+    @Size(min = 3, max = 50, message = "Name must be between 3 and 50 characters")
     private String name;
 
-    // Default Constructor (required for JSON deserialization frameworks like Jackson)
+    // Default Constructor (required for Jackson)
     public CategoryDTO() {
     }
 
     /**
      * Parameterized Constructor.
-     *
-     * Mainly useful for Unit Tests and when creating DTO objects directly.
      *
      * @param id Category ID
      * @param name Category name
@@ -54,18 +46,17 @@ public class CategoryDTO implements Serializable {
         this.name = name;
     }
 
-    /**
-     * Entity Conversion Constructor (PRODUCTION USE).
+    /*
+     * Entity Conversion Constructor (REMOVED / DEPRECATED)
      *
-     * Selectively maps the desired fields from the JPA {@link Category} entity
-     * into {@link CategoryDTO}.
+     * We removed this method because transformation logic is now fully delegated
+     * to the CategoryMapper component.
      *
-     * @param entity The source Category entity retrieved from the database.
+     * public CategoryDTO(Category entity) {
+     *     this.id = entity.getId();
+     *     this.name = entity.getName();
+     * }
      */
-    public CategoryDTO(Category entity) {
-        this.id = entity.getId();
-        this.name = entity.getName();
-    }
 
     // ========================================================================
     // GETTERS AND SETTERS
@@ -87,31 +78,3 @@ public class CategoryDTO implements Serializable {
         this.name = name;
     }
 }
-
-/*
- ============================================================================
- DTO AS A FIELD FILTERING PIPELINE
- ============================================================================
-
- Database Table (tb_category)
-       │
-       ▼
- [ Category Entity ]  <-- Full Entity:
-       │
-       │              • id
-       │              • name
-       │
-       │ (Conversion via new CategoryDTO(entity))
-       ▼
- [ CategoryDTO ]      <-- Filtered API Payload:
-       │
-       │              • id
-       │              • name
-       │
-       ▼
- CategoryController   <-- Returns CategoryDTO
-       │
-       ▼
- HTTP Client          <-- Receives Category JSON
- ============================================================================
-*/

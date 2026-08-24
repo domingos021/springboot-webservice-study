@@ -2,6 +2,7 @@ package com.diniz.springbootstudy.services.exemplo_antigo;
 
 import com.diniz.springbootstudy.dto.OrderDTO01;
 import com.diniz.springbootstudy.entities.Order01;
+import com.diniz.springbootstudy.mappers.OrderMapper;
 import com.diniz.springbootstudy.repositories.OrderRepository;
 import com.diniz.springbootstudy.services.exceptions.DatabaseException;
 import com.diniz.springbootstudy.services.exceptions.ResourceNotFoundException;
@@ -62,8 +63,8 @@ public class OrderService {
     // =========================================================
     // CONSTRUCTOR INJECTION (Recommended Standard)
     // =========================================================
-    // This service depends on OrderRepository.
-    // Spring automatically injects the repository bean into this constructor.
+    // This service depends on OrderRepository and OrderMapper.
+    // Spring automatically injects the beans into this constructor.
     //
     // Advantages:
     // - Explicit dependency contract.
@@ -71,9 +72,11 @@ public class OrderService {
     // - Easy to mock in unit tests without Spring Context.
     // =========================================================
     private final OrderRepository repository;
+    private final OrderMapper mapper;
 
-    public OrderService(OrderRepository repository) {
+    public OrderService(OrderRepository repository, OrderMapper mapper) {
         this.repository = repository;
+        this.mapper = mapper;
     }
 
     // ========================================================================
@@ -84,7 +87,7 @@ public class OrderService {
     public List<OrderDTO01> findAll() {
         /*
          * Fetches Order entities from the database and converts the list
-         * into a list of OrderDTOs using Java Streams and a constructor reference.
+         * into a list of OrderDTOs using Java Streams and OrderMapper.
          */
         List<Order01> list = repository.findAll();
 
@@ -103,19 +106,18 @@ public class OrderService {
          * Equivalent lambda expression:
          *
          * return list.stream()
-         *         .map(order -> new OrderDTO(order))
+         *         .map(order -> mapper.toDTO(order))
          *         .toList();
          *
          * For each Order in the list, the lambda receives the 'order'
-         * object and explicitly creates a new OrderDTO by passing
-         * 'order' to the constructor.
+         * object and delegates transformation to the OrderMapper component.
          */
 
-        // For each Order in the list, calls the OrderDTO(Order) constructor
+        // For each Order in the list, calls mapper::toDTO
         // and transforms the list of Orders into a list of OrderDTOs.
         return list.stream() // Starts a stream from the list of Orders
-                .map(OrderDTO01::new) // Creates a new OrderDTO for each Order
-                .toList(); // Converts the Stream<OrderDTO> into a List<OrderDTO>
+                .map(mapper::toDTO) // Converts each Order entity to OrderDTO01 via mapper
+                .toList(); // Converts the Stream<OrderDTO01> into a List<OrderDTO01>
     }
 
     @Transactional(readOnly = true)
@@ -133,26 +135,23 @@ public class OrderService {
         Order01 entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(id));
 
-        return new OrderDTO01(entity);
+        return mapper.toDTO(entity);
     }
 
     @Transactional
     public OrderDTO01 insert(OrderDTO01 dto) {
         /*
-         * Creates a new Order entity from the input OrderDTO.
+         * Creates a new Order entity from the input OrderDTO via OrderMapper.
          *
          * The Order entity is then persisted through OrderRepository.
          * Finally, the persisted entity is converted back to OrderDTO
          * before being returned to the Controller layer.
          */
-        Order01 entity = new Order01();
-
-        // Copies the data received from the DTO to the entity.
-        entity.setMoment(dto.getMoment());
+        Order01 entity = mapper.toEntity(dto);
 
         entity = repository.save(entity);
 
-        return new OrderDTO01(entity);
+        return mapper.toDTO(entity);
     }
 
     @Transactional
@@ -171,11 +170,11 @@ public class OrderService {
         try {
             Order01 entity = repository.getReferenceById(id);
 
-            updateData(entity, orderdto);
+            mapper.copyDtoToEntity(orderdto, entity);
 
             entity = repository.save(entity);
 
-            return new OrderDTO01(entity);
+            return mapper.toDTO(entity);
 
         } catch (EntityNotFoundException e) {
             throw new ResourceNotFoundException(id);
@@ -203,29 +202,6 @@ public class OrderService {
             throw new DatabaseException(e.getMessage());
         }
     }
-
-    /*
-     * Helper method responsible for updating the entity fields using data
-     * received from the DTO.
-     *
-     * This method copies only the fields that are allowed to be changed,
-     * keeping control over which entity attributes can be modified.
-     *
-     * It prevents duplicated code by centralizing the update logic in one place.
-     *
-     * Example:
-     *
-     * Order01 entity  <-  OrderDTO dto
-     *
-     * Only the fields defined here will be updated.
-     * Fields not included remain unchanged.
-     *
-     * This approach is commonly used in update operations (PUT),
-     * where we receive a DTO and apply its values to an existing entity.
-     */
-    private void updateData(Order01 entity, OrderDTO01 orderdto) {
-        entity.setMoment(orderdto.getMoment());
-    }
 }
 
 /*
@@ -236,13 +212,15 @@ public class OrderService {
  Constructor Injection:
 
  private final OrderRepository repository;
+ private final OrderMapper mapper;
 
- public OrderService(OrderRepository repository) {
+ public OrderService(OrderRepository repository, OrderMapper mapper) {
      this.repository = repository;
+     this.mapper = mapper;
  }
 
- Spring locates the OrderRepository bean in the ApplicationContext
- and injects it automatically into the OrderService constructor.
+ Spring locates the OrderRepository and OrderMapper beans in the ApplicationContext
+ and injects them automatically into the OrderService constructor.
 
  Advantages:
  1. Immutability via the 'final' keyword.
@@ -264,7 +242,7 @@ public class OrderService {
            ▼
     OrderService
            │
-           │ Converts DTO → Entity
+           │ Converts DTO → Entity via OrderMapper
            ▼
    OrderRepository
            │

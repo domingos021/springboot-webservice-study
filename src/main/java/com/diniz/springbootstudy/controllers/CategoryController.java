@@ -2,8 +2,10 @@ package com.diniz.springbootstudy.controllers;
 
 import com.diniz.springbootstudy.dto.CategoryDTO;
 import com.diniz.springbootstudy.services.CategoryService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
 import java.util.List;
@@ -11,36 +13,13 @@ import java.util.List;
 // ============================================================================
 // ARCHITECTURAL OVERVIEW OF LAYERS IN A SPRING BOOT PROJECT
 // ============================================================================
-// REST Controller
-// Handles HTTP requests and returns responses.
-//
-// Service Layer
-// Contains the business rules and application logic.
-//
-// Data Access Layer (Repository)
-// Responsible for database communication and data persistence.
-//
-// Entity Layer
-// Represents the database tables and domain objects.
-//
-// DTO Layer (Data Transfer Object)
-// Used to transfer data between application layers without exposing Entities.
+// REST Controller -> Service Layer -> Repository -> Entity -> DTO
 // ============================================================================
 
 /**
  * REST Controller: Resource Layer
  *
  * Responsible for exposing the HTTP endpoints related to Categories.
- *
- * Useful Commands:
- * - Run application via terminal: mvn spring-boot:run
- *
- * Test endpoints:
- * GET    http://localhost:8080/categories
- * GET    http://localhost:8080/categories/1
- * POST   http://localhost:8080/categories
- * PUT    http://localhost:8080/categories/1
- * DELETE http://localhost:8080/categories/1
  */
 @RestController
 @RequestMapping(value = "/categories")
@@ -64,9 +43,7 @@ public class CategoryController {
 
     @GetMapping
     public ResponseEntity<List<CategoryDTO>> findAll() {
-
         List<CategoryDTO> list = service.findAll();
-
         return ResponseEntity.ok().body(list);
     }
 
@@ -78,9 +55,7 @@ public class CategoryController {
 
     @GetMapping("/{id}")
     public ResponseEntity<CategoryDTO> findById(@PathVariable Long id) {
-
         CategoryDTO dto = service.findById(id);
-
         return ResponseEntity.ok().body(dto);
     }
 
@@ -91,11 +66,10 @@ public class CategoryController {
     // ========================================================================
 
     @PostMapping
-    public ResponseEntity<CategoryDTO> insert(@RequestBody CategoryDTO dto) {
-
+    public ResponseEntity<CategoryDTO> insert(@Valid @RequestBody CategoryDTO dto) {
         dto = service.insert(dto);
 
-        URI uri = org.springframework.web.servlet.support.ServletUriComponentsBuilder
+        URI uri = ServletUriComponentsBuilder
                 .fromCurrentRequest()
                 .path("/{id}")
                 .buildAndExpand(dto.getId())
@@ -113,10 +87,9 @@ public class CategoryController {
     @PutMapping("/{id}")
     public ResponseEntity<CategoryDTO> update(
             @PathVariable Long id,
-            @RequestBody CategoryDTO dto) {
+            @Valid @RequestBody CategoryDTO dto) {
 
         dto = service.update(id, dto);
-
         return ResponseEntity.ok().body(dto);
     }
 
@@ -128,9 +101,7 @@ public class CategoryController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-
         service.delete(id);
-
         return ResponseEntity.noContent().build();
     }
 }

@@ -2,12 +2,15 @@ package com.diniz.springbootstudy.dto;
 
 import com.diniz.springbootstudy.entities.Product;
 import com.fasterxml.jackson.annotation.JsonRootName;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 // ============================================================================
 // DATA TRANSFER OBJECT (DTO) LAYER - FIELD FILTER & CONTRACT DEFINITION
@@ -38,21 +41,55 @@ public class ProductDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private Long id;
+
+    @NotBlank(message = "Field 'name' is required")
+    @Size(min = 3, max = 80, message = "Name must be between 3 and 80 characters")
     private String name;
+
+    @NotBlank(message = "Field 'description' is required")
+    @Size(min = 10, message = "Description must have at least 10 characters")
     private String description;
+
+    @Positive(message = "Price must be a positive number")
     private Double price;
+
     private String imgUrl;
 
+    @NotEmpty(message = "Product must have at least one category")
     private Set<CategoryDTO> categories = new HashSet<>();
 
-    // Default Constructor (required for JSON deserialization frameworks like Jackson)
+    // ============================================================================
+    // CONSTRUCTORS
+    // ============================================================================
+
+    /**
+     * Default Constructor.
+     * Required for JSON deserialization frameworks like Jackson.
+     */
     public ProductDTO() {
     }
 
     /**
-     * Parameterized Constructor.
+     * Partial Parameterized Constructor.
+     * Useful when categories are not immediately required.
      *
-     * Mainly useful for Unit Tests and when creating DTO objects directly.
+     * @param id Product ID
+     * @param name Product name
+     * @param description Product description
+     * @param price Product price
+     * @param imgUrl Product image URL
+     */
+    public ProductDTO(Long id, String name, String description, Double price, String imgUrl) {
+        this.id = id;
+        this.name = name;
+        this.description = description;
+        this.price = price;
+        this.imgUrl = imgUrl;
+    }
+
+    /**
+     * Full Parameterized Constructor.
+     * Useful for Unit Tests and direct DTO instantiation.
      *
      * @param id Product ID
      * @param name Product name
@@ -76,31 +113,26 @@ public class ProductDTO implements Serializable {
         this.categories = categories;
     }
 
-    /**
-     * Entity Conversion Constructor (PRODUCTION USE).
+    /*
+     * Entity Conversion Constructor (REMOVED / DEPRECATED)
      *
-     * Selectively maps the desired fields from the JPA {@link Product} entity
-     * into {@link ProductDTO}.
+     * We removed this method because transformation logic is now fully delegated
+     * to the ProductMapper component, keeping the DTO clean and decoupled from JPA entities.
      *
-     * @param entity The source Product entity retrieved from the database.
+     * public ProductDTO(Product entity) {
+     *     this.id = entity.getId();
+     *     this.name = entity.getName();
+     *     this.description = entity.getDescription();
+     *     this.price = entity.getPrice();
+     *     this.imgUrl = entity.getImgUrl();
+     *
+     *     if (entity.getCategories() != null) {
+     *         this.categories = entity.getCategories().stream()
+     *                 .map(CategoryDTO::new)
+     *                 .collect(Collectors.toSet());
+     *     }
+     * }
      */
-    public ProductDTO(Product entity) {
-        this.id = entity.getId();
-        this.name = entity.getName();
-        this.description = entity.getDescription();
-        this.price = entity.getPrice();
-        this.imgUrl = entity.getImgUrl();
-
-        /*
-         * Populates the categories set by converting each associated Category entity
-         * into a CategoryDTO using Java Stream API.
-         */
-        if (entity.getCategories() != null) {
-            this.categories = entity.getCategories().stream()
-                    .map(CategoryDTO::new)
-                    .collect(Collectors.toSet());
-        }
-    }
 
     // ============================================================================
     // GETTERS AND SETTERS

@@ -1,9 +1,9 @@
 package com.diniz.springbootstudy.services;
 
-// 1. IMPORTAÇÃO DA DTO ATUALIZADA (E não da pasta antiga)
 import com.diniz.springbootstudy.dto.OrderDTO01;
 import com.diniz.springbootstudy.entities.Order01;
 import com.diniz.springbootstudy.entities.User;
+import com.diniz.springbootstudy.mappers.OrderMapper;
 import com.diniz.springbootstudy.repositories.OrderRepository01;
 import com.diniz.springbootstudy.repositories.UserRepository;
 import com.diniz.springbootstudy.services.exceptions.DatabaseException;
@@ -28,12 +28,14 @@ import java.util.List;
 public class OrderService01 {
 
     private final OrderRepository01 repository;
-    private final UserRepository userRepository; // Injetado para buscar a entidade User quando salvar/atualizar
+    private final UserRepository userRepository;
+    private final OrderMapper mapper;
 
     // Injeção de dependências via Construtor
-    public OrderService01(OrderRepository01 repository, UserRepository userRepository) {
+    public OrderService01(OrderRepository01 repository, UserRepository userRepository, OrderMapper mapper) {
         this.repository = repository;
         this.userRepository = userRepository;
+        this.mapper = mapper;
     }
 
     // ========================================================================
@@ -44,7 +46,7 @@ public class OrderService01 {
     public List<OrderDTO01> findAll() {
         List<Order01> list = repository.findAll();
         return list.stream()
-                .map(OrderDTO01::new)
+                .map(mapper::toDTO)
                 .toList();
     }
 
@@ -53,25 +55,19 @@ public class OrderService01 {
         Order01 entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(id));
 
-        return new OrderDTO01(entity);
+        return mapper.toDTO(entity);
     }
 
     @Transactional
     public OrderDTO01 insert(OrderDTO01 dto) {
-        Order01 entity = new Order01();
+        Order01 entity = mapper.toEntity(dto);
 
-        entity.setMoment(dto.getMoment());
-        entity.setOrderStatus(dto.getOrderStatus());
-
-        // Vincula o cliente recuperando a entidade User pelo ID vindo no UserDTO
-        if (dto.getClient() != null && dto.getClient().getId() != null) {
-            User clientEntity = userRepository.getReferenceById(dto.getClient().getId());
-            entity.setClient(clientEntity);
-        }
+        // Vincula o cliente recuperando a entidade User pelo ID do DTO
+        attachClient(dto, entity);
 
         entity = repository.save(entity);
 
-        return new OrderDTO01(entity);
+        return mapper.toDTO(entity);
     }
 
     @Transactional
@@ -79,11 +75,12 @@ public class OrderService01 {
         try {
             Order01 entity = repository.getReferenceById(id);
 
-            updateData(entity, dto);
+            mapper.copyDtoToEntity(dto, entity);
+            attachClient(dto, entity);
 
             entity = repository.save(entity);
 
-            return new OrderDTO01(entity);
+            return mapper.toDTO(entity);
 
         } catch (EntityNotFoundException e) {
             throw new ResourceNotFoundException(id);
@@ -104,12 +101,9 @@ public class OrderService01 {
     }
 
     /**
-     * Copies the editable fields from the DTO to the entity.
+     * Helper method to attach User entity reference to Order entity.
      */
-    private void updateData(Order01 entity, OrderDTO01 dto) {
-        entity.setMoment(dto.getMoment());
-        entity.setOrderStatus(dto.getOrderStatus());
-
+    private void attachClient(OrderDTO01 dto, Order01 entity) {
         if (dto.getClient() != null && dto.getClient().getId() != null) {
             User clientEntity = userRepository.getReferenceById(dto.getClient().getId());
             entity.setClient(clientEntity);

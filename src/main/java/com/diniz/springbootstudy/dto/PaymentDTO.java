@@ -2,6 +2,7 @@ package com.diniz.springbootstudy.dto;
 
 import com.diniz.springbootstudy.entities.Payment;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.NotNull;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -9,9 +10,6 @@ import java.time.Instant;
 
 // ============================================================================
 // PAYMENT DTO - REST RESPONSE CONTRACT
-// ============================================================================
-// Isolates the payment data and the associated order ID
-// to prevent circular reference serialization issues when nested in OrderDTO01.
 // ============================================================================
 
 /**
@@ -24,6 +22,7 @@ public class PaymentDTO implements Serializable {
 
     private Long id;
 
+    @NotNull(message = "Field 'moment' is required")
     @JsonFormat(
             shape = JsonFormat.Shape.STRING,
             pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'",
@@ -31,29 +30,40 @@ public class PaymentDTO implements Serializable {
     )
     private Instant moment;
 
+    @NotNull(message = "Field 'orderId' is required")
     private Long orderId;
 
+    // Default Constructor (required for Jackson)
     public PaymentDTO() {
     }
 
+    /**
+     * Parameterized Constructor.
+     *
+     * @param id Payment ID
+     * @param moment Payment timestamp
+     * @param orderId Associated Order ID
+     */
     public PaymentDTO(Long id, Instant moment, Long orderId) {
         this.id = id;
         this.moment = moment;
         this.orderId = orderId;
     }
 
-    /**
-     * Converts a Payment entity into a PaymentDTO.
+    /*
+     * Entity Conversion Constructor (REMOVED / DEPRECATED)
      *
-     * @param entity Source Payment entity.
+     * We removed this method because transformation logic is now fully delegated
+     * to the PaymentMapper component.
+     *
+     * public PaymentDTO(Payment entity) {
+     *     this.id = entity.getId();
+     *     this.moment = entity.getMoment();
+     *     if (entity.getOrder() != null) {
+     *         this.orderId = entity.getOrder().getId();
+     *     }
+     * }
      */
-    public PaymentDTO(Payment entity) {
-        this.id = entity.getId();
-        this.moment = entity.getMoment();
-        if (entity.getOrder() != null) {
-            this.orderId = entity.getOrder().getId();
-        }
-    }
 
     // ============================================================================
     // GETTERS AND SETTERS

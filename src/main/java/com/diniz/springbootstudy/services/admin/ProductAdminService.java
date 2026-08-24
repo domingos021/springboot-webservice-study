@@ -2,6 +2,7 @@ package com.diniz.springbootstudy.services.admin;
 
 import com.diniz.springbootstudy.dto.admin.ProductAdminDTO;
 import com.diniz.springbootstudy.entities.Product;
+import com.diniz.springbootstudy.mappers.CategoryMapper;
 import com.diniz.springbootstudy.repositories.ProductRepository;
 import com.diniz.springbootstudy.services.exceptions.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
@@ -24,9 +25,11 @@ import java.util.List;
 public class ProductAdminService {
 
     private final ProductRepository repository;
+    private final CategoryMapper.ProductAdminMapper mapper;
 
-    public ProductAdminService(ProductRepository repository) {
+    public ProductAdminService(ProductRepository repository, CategoryMapper.ProductAdminMapper mapper) {
         this.repository = repository;
+        this.mapper = mapper;
     }
 
     /**
@@ -38,7 +41,7 @@ public class ProductAdminService {
     public List<ProductAdminDTO> findAllAdmin() {
         List<Product> list = repository.findAll();
         return list.stream()
-                .map(ProductAdminDTO::new)
+                .map(mapper::toDTO)
                 .toList();
     }
 
@@ -53,6 +56,6 @@ public class ProductAdminService {
         Product entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(id));
 
-        return new ProductAdminDTO(entity);
+        return mapper.toDTO(entity);
     }
 }

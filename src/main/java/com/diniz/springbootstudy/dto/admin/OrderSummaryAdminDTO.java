@@ -1,6 +1,5 @@
 package com.diniz.springbootstudy.dto.admin;
 
-import com.diniz.springbootstudy.entities.Order01;
 import com.diniz.springbootstudy.entities.enums.OrderStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
@@ -10,14 +9,6 @@ import java.time.Instant;
 
 // ============================================================================
 // ADMIN DTO - SUMMARIZED ORDER VIEW FOR PRODUCT MANAGEMENT
-// ============================================================================
-// Core Purpose:
-// Provides a lightweight summary of an Order specifically tailored for administrative
-// product sales reports.
-//
-// Key Benefits:
-// - Eliminates recursion: Does NOT include the list of OrderItems.
-// - High Performance: Serializes only essential management attributes.
 // ============================================================================
 
 /**
@@ -41,26 +32,32 @@ public class OrderSummaryAdminDTO implements Serializable {
     private String clientName;
     private String clientEmail;
 
+    // Default Constructor (required for Jackson)
     public OrderSummaryAdminDTO() {
     }
 
     /**
-     * Entity Conversion Constructor.
+     * Parameterized Constructor.
      *
-     * Maps essential fields from the Order01 entity and its associated User.
-     *
-     * @param entity Source Order01 entity.
+     * @param orderId Order ID
+     * @param moment Order date and time
+     * @param orderStatus Order status Enum
+     * @param clientName Associated client's name
+     * @param clientEmail Associated client's email
      */
-    public OrderSummaryAdminDTO(Order01 entity) {
-        this.orderId = entity.getId();
-        this.moment = entity.getMoment();
-        this.orderStatus = entity.getOrderStatus();
-
-        if (entity.getClient() != null) {
-            this.clientName = entity.getClient().getName();
-            this.clientEmail = entity.getClient().getEmail();
-        }
+    public OrderSummaryAdminDTO(Long orderId, Instant moment, OrderStatus orderStatus, String clientName, String clientEmail) {
+        this.orderId = orderId;
+        this.moment = moment;
+        this.orderStatus = orderStatus;
+        this.clientName = clientName;
+        this.clientEmail = clientEmail;
     }
+
+    /*
+     * Entity Conversion Constructor (REMOVED / DEPRECATED)
+     *
+     * Transformation logic is now fully delegated to OrderSummaryAdminMapper.
+     */
 
     // ============================================================================
     // GETTERS AND SETTERS

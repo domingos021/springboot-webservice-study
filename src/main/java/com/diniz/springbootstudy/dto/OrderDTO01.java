@@ -3,39 +3,18 @@ package com.diniz.springbootstudy.dto;
 import com.diniz.springbootstudy.entities.Order01;
 import com.diniz.springbootstudy.entities.enums.OrderStatus;
 import com.fasterxml.jackson.annotation.JsonRootName;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.stream.Collectors;
-
-    /*
-    OrderDTO01  (Main DTO)
-      │
-      ├── contains ──>  Set<OrderItemDTO>  (Child DTO)
-      │                   │
-      │                   └── extracts data from ──> Product / OrderItem
-      │
-      └── contains ──>  PaymentDTO          (Dependent 1:1 DTO)
-    */
 
 // ============================================================================
 // DATA TRANSFER OBJECT (DTO) LAYER - FIELD FILTER & CONTRACT DEFINITION
-// ============================================================================
-// Core Purpose:
-// The DTO acts as an EXPLICIT FIELD FILTER over the JPA Entity (@Entity).
-// You (the developer) decide exactly which fields are exposed and returned
-// to the client in HTTP responses.
-//
-// Key Functions:
-// - Custom Field Filtering: Selectively returns only client-facing attributes.
-// - API Decoupling: The DTO separates the API contract from the JPA Entity.
-// - Prevents Serialization Loops: Avoids infinite JSON recursion caused by
-//   bidirectional JPA relationships (@OneToMany / @ManyToOne / @OneToOne).
-// - Controls Relationships: Exposes nested DTOs (UserDTO, PaymentDTO, OrderItemDTO)
-//   instead of exposing raw domain entities.
 // ============================================================================
 
 /**
@@ -52,36 +31,29 @@ public class OrderDTO01 implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private Long id;
+
     private Instant moment;
+
+    @NotNull(message = "Field 'orderStatus' is required")
     private OrderStatus orderStatus;
 
-    /*
-     * We use UserDTO instead of the JPA Entity (User).
-     * This guarantees that no bidirectional JPA attributes from User (like Set<Order01>)
-     * cause infinite serialization loops during JSON conversion.
-     */
+    @Valid
+    @NotNull(message = "Field 'client' is required")
     private UserDTO client;
 
-    /*
-     * Collection of OrderItemDTO representing the items purchased in this order.
-     * Maps the relationship without exposing the underlying JPA OrderItem entity directly.
-     */
+    @Valid
+    @NotEmpty(message = "Order must contain at least one item")
     private Set<OrderItemDTO> items = new HashSet<>();
 
-    /*
-     * PaymentDTO representing the associated 1:1 payment details.
-     * Isolates the Payment entity and avoids circular serialization loop.
-     */
+    @Valid
     private PaymentDTO payment;
 
-    // Default Constructor (required for JSON deserialization frameworks like Jackson)
+    // Default Constructor (required for Jackson)
     public OrderDTO01() {
     }
 
     /**
-     * Parameterized Constructor.
-     *
-     * Mainly useful for Unit Tests and when creating DTO objects directly.
+     * Parameterized Constructor (without items/payment).
      *
      * @param id Order ID
      * @param moment Order date and time
@@ -98,39 +70,32 @@ public class OrderDTO01 implements Serializable {
     }
 
     /**
-     * Entity Conversion Constructor (PRODUCTION USE).
+     * Full Parameterized Constructor.
      *
-     * Selectively maps the desired fields from the JPA {@link Order01} entity
-     * into {@link OrderDTO01}.
-     *
-     * @param entity The source Order01 entity retrieved from the database.
+     * @param id Order ID
+     * @param moment Order date and time
+     * @param orderStatus Order status Enum
+     * @param client UserDTO associated with the Order
+     * @param items Set of OrderItemDTOs
+     * @param payment PaymentDTO associated with the Order
      */
-    public OrderDTO01(Order01 entity) {
-        this.id = entity.getId();
-        this.moment = entity.getMoment();
-        this.orderStatus = entity.getOrderStatus();
-
-        if (entity.getClient() != null) {
-            this.client = new UserDTO(entity.getClient());
-        }
-
-        /*
-         * Populates the items set by converting each OrderItem entity from Order01
-         * into an OrderItemDTO using Java Stream API.
-         */
-        if (entity.getItems() != null) {
-            this.items = entity.getItems().stream()
-                    .map(OrderItemDTO::new)
-                    .collect(Collectors.toSet());
-        }
-
-        /*
-         * Maps the 1:1 Payment association into PaymentDTO if present.
-         */
-        if (entity.getPayment() != null) {
-            this.payment = new PaymentDTO(entity.getPayment());
-        }
+    public OrderDTO01(Long id, Instant moment, OrderStatus orderStatus, UserDTO client, Set<OrderItemDTO> items, PaymentDTO payment) {
+        this.id = id;
+        this.moment = moment;
+        this.orderStatus = orderStatus;
+        this.client = client;
+        this.items = items != null ? items : new HashSet<>();
+        this.payment = payment;
     }
+
+    /*
+     * Entity Conversion Constructor (REMOVED / DEPRECATED)
+     *
+     * We removed this method because transformation logic is now fully delegated
+     * to the OrderMapper component, keeping the DTO clean and decoupled from JPA entities.
+     *
+     * public OrderDTO01(Order01 entity) { ... }
+     */
 
     // ========================================================================
     // GETTERS AND SETTERS
@@ -172,6 +137,10 @@ public class OrderDTO01 implements Serializable {
         return items;
     }
 
+    public void setItems(Set<OrderItemDTO> items) {
+        this.items = items;
+    }
+
     public PaymentDTO getPayment() {
         return payment;
     }
@@ -183,43 +152,13 @@ public class OrderDTO01 implements Serializable {
     /**
      * Calculates the total price of the order dynamically by summing up
      * the subtotal of each OrderItemDTO in the items collection.
-     *
-     *
-     *
-     * Banco de dados
-     *       |
-     *       ↓
-     * Order01 (Entity)
-     *       |
-     *       ↓
-     * OrderDTO01(Order01 entity)
-     *       |
-     *       ↓
-     * Converte OrderItem → OrderItemDTO
-     *       |
-     *       ↓
-     * Controller retorna OrderDTO01
-     *       |
-     *       ↓
-     * Jackson serializa para JSON
-     *       |
-     *       ↓
-     * Encontra getTotal()
-     *       |
-     *       ↓
-     * Calcula:
-     *       OrderItemDTO 1 → getSubTotal()
-     *       OrderItemDTO 2 → getSubTotal()
-     *       OrderItemDTO 3 → getSubTotal()
-     *       |
-     *       ↓
-     * Cria:
-     *       "total": 1431.0
      */
     public Double getTotal() {
         double sum = 0.0;
         for (OrderItemDTO item : items) {
-            sum += item.getSubTotal();
+            if (item != null && item.getSubTotal() != null) {
+                sum += item.getSubTotal();
+            }
         }
         return sum;
     }
