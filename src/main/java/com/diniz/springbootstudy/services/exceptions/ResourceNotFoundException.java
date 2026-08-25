@@ -18,6 +18,7 @@ import java.io.Serial;
 /**
  * Custom exception thrown when a resource is not found in the database.
  */
+// this class e a subclass of RuntimeException
 public class ResourceNotFoundException extends RuntimeException {
 
     @Serial
@@ -29,6 +30,9 @@ public class ResourceNotFoundException extends RuntimeException {
      * @param id The ID of the missing resource.
      */
     public ResourceNotFoundException(Object id) {
+        /*
+         * we call the constructor of super class -> RuntimeException( and put the message into it)
+         */
         super("Resource not found. Id: " + id);
     }
 }

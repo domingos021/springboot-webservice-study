@@ -27,10 +27,10 @@ public class StandardError implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private Instant timestamp;
-    private Integer status;
-    private String error;
-    private String message;
-    private String path;
+    private Integer status; // error code
+    private String error; //the proper error
+    private String message;  // the message of error
+    private String path; // the path  http of error
 
     // Default Constructor (required for JSON serialization frameworks like Jackson)
     public StandardError() {

@@ -78,7 +78,7 @@ public class OrderService01 {
          * Queries the database for an Order01 entity by its ID.
          * If present, returns the entity; otherwise, throws a ResourceNotFoundException.
          */
-        Order01 entity = repository.findById(id)
+        Order01 entity = repository.findById(id)  // Fetches ONE Order01 entities from the database by Id
                 .orElseThrow(() -> new ResourceNotFoundException(id));
 
         /*

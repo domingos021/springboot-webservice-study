@@ -219,10 +219,11 @@ public class UserController {
          * This URI will be used in the HTTP Location header to indicate
          * where the newly created resource can be accessed.
          */
+        //HEADER RESPONSE
         URI uri = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
                 .buildAndExpand(newDto.getId())
-                .toUri();
+                .toUri(); // converts to an object of URI TYPE
 
 
         /*
