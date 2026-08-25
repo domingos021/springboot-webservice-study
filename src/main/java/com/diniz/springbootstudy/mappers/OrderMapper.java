@@ -96,27 +96,52 @@ public class OrderMapper {
 
     /**
      * Converts an OrderDTO01 to a new Order01 JPA Entity.
+     *  here the method toEntity do the contrary, instead of convert entity to dto
+     *  it converts dto to entity
+     */
+
+    /*
+     * Receives an OrderDTO01 and converts it into a new Order01 JPA Entity.
      */
     public Order01 toEntity(OrderDTO01 dto) {
+        /*
+         * Wraps the incoming DTO in an Optional to safely handle null inputs.
+         */
         return Optional.ofNullable(dto)
+                /*
+                 * If present, instantiates a new Order01 entity and populates its scalar fields.
+                 * Since we are transferring data into the entity, we call getters on the DTO
+                 * and pass those values into the corresponding setters of the entity.
+                 */
                 .map(d -> {
                     Order01 entity = new Order01();
                     entity.setId(d.getId());
                     entity.setMoment(d.getMoment());
                     entity.setOrderStatus(d.getOrderStatus());
-                    return entity;
+                    return entity;// return the entity transformed into dto
                 })
+                /*
+                 * Returns null if the provided DTO was null.
+                 */
                 .orElse(null);
     }
 
     /**
-     * Copies non-null/updatable field values from OrderDTO01 to an existing Order01 entity.
+     * Copies non-null and updatable field values from OrderDTO01 to an existing Order01 entity.
+     * Typically used for UPDATE (PUT/PATCH) operations.
      */
     public void copyDtoToEntity(OrderDTO01 dto, Order01 entity) {
+        /*
+         * Guard clause: prevents execution if either the source DTO or target Entity is null.
+         */
         if (dto == null || entity == null) {
             return;
         }
 
+        /*
+         * Updates only the mutable business fields (e.g., status),
+         * preserving immutable attributes like ID and creation timestamp.
+         */
         entity.setOrderStatus(dto.getOrderStatus());
     }
 }

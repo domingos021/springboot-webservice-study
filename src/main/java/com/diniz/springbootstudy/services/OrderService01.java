@@ -16,13 +16,25 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 // ============================================================================
-// SERVICE LAYER ARCHITECTURE
+// SERVICE LAYER ARCHITECTURE & DATA FLOW
 // ============================================================================
-// HTTP Request ──> OrderController01 ──> OrderService01 ──> OrderRepository01
+//
+// [Client Request] ──HTTP──> [OrderController01]
+//                                   │
+//                              (OrderDTO01)
+//                                   ▼
+//                            [OrderService01] ──(OrderMapper)──> [DTO <─> Entity]
+//                                   │
+//                               (Order01)
+//                                   ▼
+//                          [OrderRepository01] ──JPA/SQL──> [Database]
+//
 // ============================================================================
 
 /**
  * Service Layer component registered as a Spring Bean.
+ * Encapsulates business rules, transaction boundaries, and orchestration
+ * between Repositories and Mappers for Order operations.
  */
 @Service
 public class OrderService01 {
@@ -31,7 +43,9 @@ public class OrderService01 {
     private final UserRepository userRepository;
     private final OrderMapper mapper;
 
-    // Injeção de dependências via Construtor
+    /**
+     * Dependency injection via constructor.
+     */
     public OrderService01(OrderRepository01 repository, UserRepository userRepository, OrderMapper mapper) {
         this.repository = repository;
         this.userRepository = userRepository;
@@ -42,53 +56,108 @@ public class OrderService01 {
     // BUSINESS LOGIC / SERVICE METHODS
     // ========================================================================
 
+    /**
+     * Retrieves all orders from the database.
+     * Uses readOnly = true to optimize Hibernate performance by disabling dirty checking.
+     */
     @Transactional(readOnly = true)
     public List<OrderDTO01> findAll() {
-        List<Order01> list = repository.findAll();
-        return list.stream()
-                .map(mapper::toDTO)
-                .toList();
+        List<Order01> list = repository.findAll(); // Fetches all Order01 entities from the database
+        return list.stream() // Opens a stream pipeline to process the query result list
+                .map(mapper::toDTO) // Applies the toDTO mapping function to each Order01 entity using a method reference
+                .toList(); // Collects the transformed elements into an unmodifiable List of OrderDTO01
     }
 
+    /**
+     * Finds an order by its unique identifier.
+     * Throws ResourceNotFoundException if the record is missing.
+     */
     @Transactional(readOnly = true)
     public OrderDTO01 findById(Long id) {
+        /*
+         * Queries the database for an Order01 entity by its ID.
+         * If present, returns the entity; otherwise, throws a ResourceNotFoundException.
+         */
         Order01 entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(id));
 
+        /*
+         * Maps the retrieved entity to OrderDTO01 and returns it to the controller layer.
+         */
         return mapper.toDTO(entity);
     }
 
+    /**
+     * Creates and persists a new order in the database.
+     */
     @Transactional
     public OrderDTO01 insert(OrderDTO01 dto) {
+        /*
+         * Converts the input OrderDTO01 into an Order01 JPA entity.
+         */
         Order01 entity = mapper.toEntity(dto);
 
-        // Vincula o cliente recuperando a entidade User pelo ID do DTO
+        /*
+         * Attaches the associated client entity (User) retrieved from the database using the DTO's client ID.
+         */
         attachClient(dto, entity);
 
+        /*
+         * Persists the newly created Order01 entity into the database.
+         */
         entity = repository.save(entity);
 
+        /*
+         * Maps the persisted entity (now with generated ID and timestamps) back to an OrderDTO01.
+         */
         return mapper.toDTO(entity);
     }
 
+    /**
+     * Updates an existing order by its ID with new data provided in the DTO.
+     * Uses getReferenceById to obtain a proxy instance without hitting the DB immediately.
+     */
     @Transactional
     public OrderDTO01 update(Long id, OrderDTO01 dto) {
         try {
+            /*
+             * Obtains a lazy-loaded JPA entity proxy for performance optimization.
+             */
             Order01 entity = repository.getReferenceById(id);
 
+            /*
+             * Copies updatable scalar attributes and attaches the client reference.
+             */
             mapper.copyDtoToEntity(dto, entity);
             attachClient(dto, entity);
 
+            /*
+             * Flushes the updated entity state to the database.
+             */
             entity = repository.save(entity);
 
+            /*
+             * Maps the updated entity state back to OrderDTO01.
+             */
             return mapper.toDTO(entity);
 
         } catch (EntityNotFoundException e) {
+            /*
+             * Translates JPA EntityNotFoundException into application-specific ResourceNotFoundException.
+             */
             throw new ResourceNotFoundException(id);
         }
     }
 
+    /**
+     * Deletes an order record by its ID.
+     * Handles non-existing resources and relational integrity constraint violations.
+     */
     @Transactional
     public void delete(Long id) {
+        /*
+         * Verifies existence before attempting deletion to throw appropriate 404 exception.
+         */
         if (!repository.existsById(id)) {
             throw new ResourceNotFoundException(id);
         }
@@ -96,12 +165,16 @@ public class OrderService01 {
         try {
             repository.deleteById(id);
         } catch (DataIntegrityViolationException e) {
+            /*
+             * Translates database constraint violations into a domain-specific DatabaseException.
+             */
             throw new DatabaseException(e.getMessage());
         }
     }
 
     /**
-     * Helper method to attach User entity reference to Order entity.
+     * Helper method to attach a lazy-loaded User proxy reference to the target Order entity.
+     * Avoids unnecessary SELECT queries by delegating association management to JPA proxy handling.
      */
     private void attachClient(OrderDTO01 dto, Order01 entity) {
         if (dto.getClient() != null && dto.getClient().getId() != null) {
