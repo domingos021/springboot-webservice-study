@@ -12,13 +12,19 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import java.time.Instant;
 
-// WE USE THIS CLASS TO TREAT THE ERRORS MANUALLY
-@ControllerAdvice // Intercepts exceptions thrown across the application
+/*
+ * @ControllerAdvice:
+ * Intercepts exceptions thrown across all Controllers in the application.
+ * Acts as a global interceptor (AOP - Aspect Oriented Programming)
+ * allowing centralized error handling in a single place, avoiding
+ * redundant try-catch blocks in routes/controllers.
+ */
+@ControllerAdvice
 public class ResourceExceptionHandler {
 
-    //1º -METHOD ->  resourceNotFound
-    // Uses the ResourceNotFoundException class reference to identify which service-layer exceptions should be intercepted.
-    // This custom exception extends RuntimeException and carries the error message that will be returned in the response.
+    // ========================================================================
+    // EXCEPTION HANDLER METHOD: ResourceNotFoundException (HTTP 404)
+    // ========================================================================
     @ExceptionHandler(ResourceNotFoundException.class)
 
     /*
@@ -69,25 +75,36 @@ public class ResourceExceptionHandler {
          * Creates an instance of StandardError to build the error response body.
          * It receives all required information about the exception and the HTTP request.
          */
-        StandardError err = new StandardError(
-                // The StandardError constructor requires the following information
-
+        StandardError standard_err = new StandardError(
                 Instant.now(),              // Current timestamp when the error occurred
                 status.value(),             // HTTP status code value from the HttpStatus object
-                error,                      // Error description defined in this handler
-                e.getMessage(),             // Message from the custom ResourceNotFoundException
+                error,                      // Generic error category/description
+                e.getMessage(),             // Detailed message provided by the custom exception
                 request.getRequestURI()     // URI path from the current HTTP request
         );
 
-        return ResponseEntity.status(status).body(err);
+        return ResponseEntity.status(status).body(standard_err);
     }
 
+    // ========================================================================
+    // EXCEPTION HANDLER METHOD: DatabaseException (HTTP 400)
+    // ========================================================================
+    /*
+     * Intercepts database integrity violation exceptions
+     * (e.g., attempting to delete a user with associated orders / ConstraintViolationException).
+     *
+     * Mapped to HTTP 400 BAD REQUEST to indicate that the request could not
+     * be processed due to business rule or database constraints.
+     */
     @ExceptionHandler(DatabaseException.class)
-    public ResponseEntity<StandardError> database(DatabaseException e, HttpServletRequest request) {
+    public ResponseEntity<StandardError> database(
+            DatabaseException e,
+            HttpServletRequest request
+    ) {
         String error = "Database error";
-        HttpStatus status = HttpStatus.BAD_REQUEST;
+        HttpStatus status = HttpStatus.BAD_REQUEST; // status 400
 
-        StandardError err = new StandardError(
+        StandardError standard_err = new StandardError(
                 Instant.now(),
                 status.value(),
                 error,
@@ -95,19 +112,27 @@ public class ResourceExceptionHandler {
                 request.getRequestURI()
         );
 
-        return ResponseEntity.status(status).body(err);
+        return ResponseEntity.status(status).body(standard_err);
     }
 
     // ========================================================================
     // EXCEPTION HANDLER METHOD: MethodArgumentNotValidException (HTTP 422)
     // ========================================================================
-    // Captura as falhas das anotações do Bean Validation (@Valid) nos DTOs
-    // e retorna a lista detalhada de campos inválidos no JSON.
-    // ========================================================================
+    /*
+     * Intercepts DTO validation failures triggered by Bean Validation (@Valid, @NotNull, @Size, etc.).
+     *
+     * Returns HTTP 422 UNPROCESSABLE CONTENT along with the ValidationError subclass,
+     * which extends StandardError and includes a detailed list containing the field name
+     * and the specific error message for each invalid property.
+     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ValidationError> validation(MethodArgumentNotValidException e, HttpServletRequest request) {
+    public ResponseEntity<ValidationError> validation(
+            MethodArgumentNotValidException e,
+            HttpServletRequest request
+    ) {
         String error = "Validation exception";
-        HttpStatus status = HttpStatus.UNPROCESSABLE_ENTITY; // 422 UNPROCESSABLE ENTITY
+        // UNPROCESSABLE_ENTITY deprecated -> use UNPROCESSABLE_CONTENT
+        HttpStatus status = HttpStatus.UNPROCESSABLE_CONTENT; // status 422
 
         ValidationError err = new ValidationError(
                 Instant.now(),
@@ -117,7 +142,11 @@ public class ResourceExceptionHandler {
                 request.getRequestURI()
         );
 
-        // Mapeia cada erro de campo disparado pelo Spring para a lista do ValidationError
+        /*
+         * e.getBindingResult().getFieldErrors() retrieves all field validation errors.
+         * The loop populates the ValidationError object by calling addError(field, defaultMessage)
+         * to expose the exact error for each attribute in the JSON response.
+         */
         for (FieldError f : e.getBindingResult().getFieldErrors()) {
             err.addError(f.getField(), f.getDefaultMessage());
         }
