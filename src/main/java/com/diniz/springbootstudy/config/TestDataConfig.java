@@ -2,6 +2,7 @@ package com.diniz.springbootstudy.config;
 
 import com.diniz.springbootstudy.entities.*;
 import com.diniz.springbootstudy.entities.enums.OrderStatus;
+import com.diniz.springbootstudy.entities.enums.UserRole;
 import com.diniz.springbootstudy.repositories.*;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Configuration;
@@ -146,23 +147,27 @@ public class TestDataConfig implements CommandLineRunner {
         productRepository.saveAll(Arrays.asList(p1, p2, p3, p4, p5));
 
         // ====================================================================
-        // CREATE USERS
+        // CREATE USERS (WITH ROLES & BCRYPT PASSWORDS)
         // ====================================================================
 
+        // User 1: ADMIN (Full access)
         User u1 = new User(
                 null,
                 "Domingos Dinis",
                 "Domingos@yahoo.com",
                 "61984615325",
-                passwordEncoder.encode("Senha123!")
+                passwordEncoder.encode("Senha123!"),
+                UserRole.ADMIN
         );
 
+        // User 2: CLIENT
         User u2 = new User(
                 null,
                 "Maria Silva",
                 "Maria@yahoo.com",
                 "61984615326",
-                passwordEncoder.encode("Senha123!")
+                passwordEncoder.encode("Senha123!"),
+                UserRole.CLIENT
         );
 
         User u3 = new User(
@@ -170,7 +175,8 @@ public class TestDataConfig implements CommandLineRunner {
                 "Carlos Santos",
                 "Carlos@yahoo.com",
                 "61984615327",
-                passwordEncoder.encode("Senha123!")
+                passwordEncoder.encode("Senha123!"),
+                UserRole.CLIENT
         );
 
         User u4 = new User(
@@ -178,7 +184,8 @@ public class TestDataConfig implements CommandLineRunner {
                 "Ana Oliveira",
                 "Ana@yahoo.com",
                 "61984615328",
-                passwordEncoder.encode("Senha123!")
+                passwordEncoder.encode("Senha123!"),
+                UserRole.CLIENT
         );
 
         User u5 = new User(
@@ -186,7 +193,8 @@ public class TestDataConfig implements CommandLineRunner {
                 "João Pereira",
                 "Joao@yahoo.com",
                 "61984615329",
-                passwordEncoder.encode("Senha123!")
+                passwordEncoder.encode("Senha123!"),
+                UserRole.CLIENT
         );
 
         User u6 = new User(
@@ -194,7 +202,8 @@ public class TestDataConfig implements CommandLineRunner {
                 "Fernanda Costa",
                 "Fernanda@yahoo.com",
                 "61984615330",
-                passwordEncoder.encode("Senha123!")
+                passwordEncoder.encode("Senha123!"),
+                UserRole.CLIENT
         );
 
         User u7 = new User(
@@ -202,7 +211,8 @@ public class TestDataConfig implements CommandLineRunner {
                 "Ricardo Almeida",
                 "Ricardo@yahoo.com",
                 "61984615331",
-                passwordEncoder.encode("Senha123!")
+                passwordEncoder.encode("Senha123!"),
+                UserRole.CLIENT
         );
 
         User u8 = new User(
@@ -210,7 +220,8 @@ public class TestDataConfig implements CommandLineRunner {
                 "Juliana Martins",
                 "Juliana@yahoo.com",
                 "61984615332",
-                passwordEncoder.encode("Senha123!")
+                passwordEncoder.encode("Senha123!"),
+                UserRole.CLIENT
         );
 
         // Saving mock users into the database
@@ -305,15 +316,10 @@ public class TestDataConfig implements CommandLineRunner {
         // CREATE PAYMENT (1:1 RELATIONSHIP WITH ORDER)
         // ====================================================================
 
-        // 1. Instantiating and associating the Payment object with the Order entity.
-        // JPA/Hibernate automatically assigns the target Order ID via @MapsId.
         Payment pay1 = new Payment(null, Instant.parse("2026-08-13T21:00:00Z"), ord1);
-
-        // 2. Setting the payment reference on the order entity to keep bidirectional state synchronized in memory.
         ord1.setPayment(pay1);
 
-        // 3. Saving the parent Order entity.
-        // CascadeType.ALL configured on @OneToOne relationship automatically persists the dependent Payment entity.
+        // Saving the parent Order entity (CascadeType.ALL persists Payment)
         orderRepository01.save(ord1);
 
         // ====================================================================

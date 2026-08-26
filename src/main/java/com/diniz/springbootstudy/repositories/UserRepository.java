@@ -4,6 +4,8 @@ import com.diniz.springbootstudy.entities.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 // ============================================================================
 // DATA ACCESS LAYER ARCHITECTURE (Spring Data JPA)
 // ============================================================================
@@ -47,11 +49,26 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * - save(User user)          -> Executa: INSERT ou UPDATE
      * - deleteById(Long id)      -> Executa: DELETE FROM tb_user WHERE id = ?
      * - count()                  -> Executa: SELECT COUNT(*) FROM tb_user
-     *
-     * Custom Query Methods (Derived Queries / @Query) can be declared here if needed:
-     * Example:
-     * Optional<User> findByEmail(String email);
      */
+
+    // ========================================================================
+    // CUSTOM DERIVED QUERIES
+    // ========================================================================
+
+    /*
+     * DERIVED QUERY: findByEmail
+     * Spring Data JPA parses this method signature and generates the corresponding SQL query:
+     * SQL: SELECT * FROM tb_user WHERE email = ?
+     *
+     * Returns an Optional<User> to handle safely when no record is found in the database.
+     */
+    Optional<User> findByEmail(String email);
+
+    /*
+     * DERIVED QUERY ALIAS: findUserByEmail
+     * Alias query for findByEmail to support custom named calls.
+     */
+    Optional<User> findUserByEmail(String email);
 }
 
 /*

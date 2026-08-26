@@ -10,10 +10,103 @@ import com.diniz.springbootstudy.services.exceptions.DatabaseException;
 import com.diniz.springbootstudy.services.exceptions.ResourceNotFoundException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+
+/*
+ ====================================================================================================
+                  STUDY GUIDE: CREATED AND UPDATED LAYERS (FOCUSED)
+ ====================================================================================================
+
+ This guide is structured in chronological order of dependencies. Studying in this sequence allows
+ you to understand how JWT-based security, password recovery, and self-profile management (/users/me)
+ seamlessly connect from the database all the way to the HTTP routes.
+
+ ====================================================================================================
+ LOGICAL STUDY SEQUENCE (WHERE TO START AND HOW TO PROCEED)
+ ====================================================================================================
+
+ 1. ENTITIES AND DTOs (The Database Foundation & Security Contracts) ◄── [ START HERE! ]
+    -------------------------------------------------------------------------------------------------
+    What to study first: The data structures required to support security features and resets.
+
+    Reading Sequence:
+      1.1. PasswordResetToken (Entity):
+           - JPA mapping for the 'tb_password_reset_token' table.
+           - Understand the @OneToOne relationship with the User entity.
+           - Observe the isExpired() method comparing token expiration against Instant.now().
+      1.2. ForgotPasswordDTO & ResetPasswordDTO (DTOs / Records):
+           - Understand input validation annotations (@NotBlank, @Email, @Size).
+           - ForgotPasswordDTO: Carries only the email provided in "Forgot Password".
+           - ResetPasswordDTO: Carries the UUID token and the new plain-text password.
+
+ 2. DATA ACCESS LAYER (Token Repository)
+    -------------------------------------------------------------------------------------------------
+    What to study next: The bridge between the database and recovery operations.
+
+    Reading Sequence:
+      2.1. PasswordResetTokenRepository:
+           - Derived Query findByToken(String token): Used to locate the received token.
+           - Derived Query findByUser(User user): Used to purge obsolete user tokens.
+
+ 3. EMAIL SERVICE LAYER (Abstraction and Sending)
+    -------------------------------------------------------------------------------------------------
+    What to study next: How email communication is decoupled from business rules.
+
+    Reading Sequence:
+      3.1. EmailService (Interface): Simple contract specifying the sendPasswordResetEmail() method.
+      3.2. MockEmailService (Implementation): How email dispatch is simulated by logging tokens to the console.
+
+ 4. JWT SECURITY LAYER (Token, Filter, and Context)
+    -------------------------------------------------------------------------------------------------
+    What to study next: The infrastructure that generates, validates, and injects user identity into the API.
+
+    Reading Sequence:
+      4.1. TokenService:
+           - generateToken(User user): HMAC256 signing mechanism with a 2-hour expiration window.
+           - validateToken(String token): Decoding and extracting user email (subject) from the JWT.
+      4.2. JwtAuthenticationFilter:
+           - How the filter reads the 'Authorization: Bearer <token>' header.
+           - How it injects the authenticated user credentials into Spring's SecurityContextHolder.
+
+ 5. BUSINESS SERVICES (Password Reset & Profile Management Rules)
+    -------------------------------------------------------------------------------------------------
+    What to study next: The orchestration layer where security mechanisms merge with business logic.
+
+    Reading Sequence:
+      5.1. PasswordResetService:
+           - createPasswordResetToken(): Purges old tokens, generates a 30-min UUID, and calls EmailService.
+           - resetPassword(): Validates expiration, encrypts new password via BCrypt, and deletes consumed token.
+      5.2. UserService (getMe() and updateMe() methods):
+           - Usage of SecurityContextHolder.getContext().getAuthentication().getName().
+           - How logged-in user profile details are fetched and updated without exposing IDs in URLs.
+
+ 6. REST CONTROLLERS (Exposing /auth and /users/me Routes)
+    -------------------------------------------------------------------------------------------------
+    What to study last: HTTP entry points receiving DTOs and delegating tasks to services.
+
+    Reading Sequence:
+      6.1. AuthenticationController (Updated):
+           - Injection of PasswordResetService.
+           - Public endpoints: POST /auth/login, POST /auth/forgot-password, and POST /auth/reset-password.
+      6.2. UserController (Updated):
+           - Private routes for logged-in user: GET /users/me and PUT /users/me.
+           - Admin routes: GET /users, GET /users/{id}, PUT /users/{id}, and DELETE /users/{id}.
+
+ ====================================================================================================
+ END-TO-END LOGGED-IN USER EXECUTION FLOW (EXAMPLE: GET /users/me)
+ ====================================================================================================
+
+  1. Client authenticates via POST /auth/login ──► TokenService generates JWT.
+  2. Client issues GET /users/me sending Header "Authorization: Bearer <token>".
+  3. JwtAuthenticationFilter intercepts token, validates it, and sets SecurityContextHolder.
+  4. UserController invokes service.getMe().
+  5. UserService reads email from SecurityContextHolder, queries UserRepository, and returns UserDTO.
+ ====================================================================================================
+*/
 
 // ============================================================================
 // SERVICE LAYER ARCHITECTURE
@@ -26,7 +119,8 @@ import java.util.List;
 //       ▼
 // UserService (@Service)   ◄── Current class
 //       │
-//       ├──► UserMapper (@Component)  (Handles Entity <-> DTO conversions)
+//       ├──► UserMapper (@Component)  (Handles Entity <-> DTO conversions & BCrypt/Role logic)
+//       ├──► SecurityContextHolder    (Extracts logged-in user credentials from JWT)
 //       │
 //       ▼
 // UserRepository (@Repository)
@@ -37,13 +131,13 @@ import java.util.List;
 
 /**
  * Service Layer component registered as a Spring Bean.
- * Coordinates business rules, entity mapping, and database access.
+ * Coordinates business rules, entity mapping, security context inspection, and database access.
  */
 @Service
 public class UserService {
 
-    private final UserRepository repository; //database connection
-    private final UserMapper mapper; // security methods via dto
+    private final UserRepository repository; // Database connection
+    private final UserMapper mapper; // Security methods & mapping via DTO
 
     public UserService(UserRepository repository, UserMapper mapper) {
         this.repository = repository;
@@ -51,7 +145,7 @@ public class UserService {
     }
 
     // ========================================================================
-    // BUSINESS LOGIC / SERVICE METHODS
+    // BUSINESS LOGIC / SERVICE METHODS (ADMIN / GENERAL MANAGEMENT)
     // ========================================================================
 
     @Transactional(readOnly = true)
@@ -61,39 +155,24 @@ public class UserService {
      * is completely omitted from the HTTP response payload.
      */
     public List<UserDTO> findAll() {
-        List<User> list = repository.findAll(); // list to be transformed on the stream
+        List<User> list = repository.findAll(); // List to be transformed on the stream
 
         /*
          * STREAM PROCESSING PIPELINE:
          *
          * 1. list.stream():
-         *    Converts the List<User> into a sequential Stream of User entities (on the conveyor belt).
+         *    Converts the List<User> into a sequential Stream of User entities.
          *
          * 2. .map(mapper::toDTO):
          *    Applies the UserMapper.toDTO() method to every User entity in the stream.
          *    Each User entity is mapped to a clean, filtered UserDTO.
          *
-         *    SYNTAX EQUIVALENTS (How else this could be written):
-         *
-         *    a) Method Reference (USED HERE - Most concise & preferred):
-         *       .map(mapper::toDTO)
-         *
-         *    b) Lambda Expression (Alternative functional style):
-         *       .map(user -> mapper.toDTO(user))
-         *
-         *    c) Imperative Traditional For-Each Loop (Alternative manual assembly):
-         *       List<UserDTO> dtos = new ArrayList<>();
-         *       for (User user : list) {
-         *           dtos.add(mapper.toDTO(user));
-         *       }
-         *       return dtos;
-         *
          * 3. .toList():
          *    Collects the transformed UserDTO elements into an immutable List<UserDTO>.
          */
-        return list.stream() // List<User> on the stream/conveyor belt ready to be processed
-                .map(mapper::toDTO) // mapper::toDTO takes each User from the stream and transforms it into a UserDTO
-                .toList(); // Collects the stream into a new, ready-to-use List<UserDTO>
+        return list.stream()
+                .map(mapper::toDTO)
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -109,29 +188,28 @@ public class UserService {
          *
          * 1. repository.findById(id):
          *    Executes a SELECT query looking for the ID.
-         *    Returns an Optional<User> to handle the potential absence of data safely.
+         *    Returns an Optional<User> to handle potential absence of data safely.
          *
          * 2. .orElseThrow(...):
          *    If the Optional contains a User, it unpacks and returns the User entity.
          *    If empty, it throws a ResourceNotFoundException using a Supplier Lambda (() -> ...).
          *
          * 3. mapper.toDTO(entity):
-         *    Converts the retrieved managed User( this single id) entity into a UserDTO,
+         *    Converts the retrieved managed User entity into a UserDTO,
          *    filtering out the password hash before sending it to the Controller/Client.
          */
-        User entity = repository.findById(id) // Searches for the user by ID (returns Optional<User>)
-                .orElseThrow(() -> new ResourceNotFoundException(id)); // Unpacks entity OR throws 404 Exception
+        User entity = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(id));
 
-        return mapper.toDTO(entity); // Converts entity to UserDTO (hides sensitive fields)
+        return mapper.toDTO(entity);
     }
-
 
     /*
      * Ensures that every new user added to the database complies with the validation rules
      * established inside the UserInsertDTO (e.g., @NotBlank, @Email).
      *
-     * Note: The password hashing is NOT handled by the UserInsertDTO itself, but rather
-     * intercepted and encoded via BCrypt inside mapper.toEntity(dto).
+     * Note: Password hashing via BCrypt and default UserRole.CLIENT assignment
+     * are handled during mapper.toEntity(dto) execution.
      *
      * END-TO-END DATA FLOW:
      *
@@ -141,9 +219,9 @@ public class UserService {
      *        ▼
      *  UserInsertDTO (Input)
      *        │
-     *        │ 2. Mapper converts to Entity + encodes via BCrypt
+     *        │ 2. Mapper converts to Entity + encodes via BCrypt + assigns ROLE_CLIENT
      *        ▼
-     *   User Entity (Persisted to DB with generated ID)
+     *   User Entity (Persisted to DB with generated ID and authority)
      *        │
      *        │ 3. Mapper converts to UserDTO (Password filtered out)
      *        ▼
@@ -152,23 +230,7 @@ public class UserService {
      *        │ 4. Reaches Controller and becomes the JSON response body (HTTP 201 Created)
      *        ▼
      * [ Client / Front-end ]
-     *
-     *
-     * INPUT / OUTPUT PAYLOAD STRUCTURE:
-     *
-     *       [ INPUT / REQUEST ]                          [ OUTPUT / RESPONSE ]
-     *       UserInsertDTO (dto)                            UserDTO (Return)
-     *   ┌─────────────────────────┐                  ┌───────────────────────────┐
-     *   │ "name": "John",         │  ───► [Service]  │ "id": 15,                 │ ◄── Generated ID!
-     *   │ "email": "john@a.com",  │       • BCrypt   │ "name": "John",           │
-     *   │ "password": "123"       │  ───► • Persists │ "email": "john@a.com"     │
-     *   └─────────────────────────┘                  └───────────────────────────┘
-     *      (Carries plain password)                    (Password FILTERED OUT!)
      */
-//        ▲                   ▲
-//        │                   │
-//     OUTPUT               INPUT
-// (Response / HTTP 201)   (Request / HTTP Body)
     @Transactional
     public UserDTO insert(UserInsertDTO dto) {
 
@@ -176,7 +238,8 @@ public class UserService {
          * CREATION & PERSISTENCE PIPELINE:
          *
          * 1. mapper.toEntity(dto):
-         *    Converts the validated UserInsertDTO into a User entity and encodes the plain text password via BCrypt.
+         *    Converts the validated UserInsertDTO into a User entity, encodes the raw
+         *    password via BCrypt, and sets default UserRole.CLIENT.
          *
          * 2. repository.save(entity):
          *    Persists the entity into the database (generating the primary key / ID).
@@ -189,14 +252,14 @@ public class UserService {
          *    and translates them into a domain-specific DatabaseException for the Global Exception Handler.
          */
         try {
-            // STEP 1: Map UserInsertDTO fields and encode the raw password into a new User entity
-            User entity = mapper.toEntity(dto); // Populates validated fields into entity setters and encodes password
+            // STEP 1: Map UserInsertDTO fields, encode password, and set default UserRole into a new User entity
+            User entity = mapper.toEntity(dto);
 
             // STEP 2: Persist validated entity to DB and receive generated ID
-            entity = repository.save(entity); // Persists entity to DB and populates the auto-generated ID
+            entity = repository.save(entity);
 
             // STEP 3: Convert saved entity into a new UserDTO object (with generated ID) to return to client
-            return mapper.toDTO(entity); // Returns safe UserDTO to the client
+            return mapper.toDTO(entity);
 
         } catch (DataIntegrityViolationException e) {
             // Protects against database-level unique constraint violations (e.g., duplicate email)
@@ -207,34 +270,8 @@ public class UserService {
     /*
      * Updates an existing User's editable fields (Name, Email, Phone) based on the provided UserUpdateDTO.
      *
-     * Password updates are intentionally excluded from this operation.
-     *
-     * END-TO-END DATA FLOW (UPDATE):
-     *
-     * [ Client / Front-end ]
-     *        │
-     *        │ 1. Sends JSON with updated fields (UserUpdateDTO)
-     *        ▼
-     *  UserUpdateDTO (Input)
-     *        │
-     *        │ 2. Service gets JPA Proxy reference via getReferenceById(id)
-     *        │    and updates fields in-place via mapper.updateEntityFromDTO(...)
-     *        ▼
-     *   User Entity (Managed in JPA Context)
-     *        │
-     *        │ 3. JPA Dirty Checking detects modifications and automatically
-     *        │    flushes UPDATE query to DB upon transaction commit
-     *        ▼
-     *     UserDTO (Output / Return)
-     *        │
-     *        │ 4. Reaches Controller and becomes HTTP 200 OK response
-     *        ▼
-     * [ Client / Front-end ]
+     * Password and UserRole updates are intentionally excluded from this operation.
      */
-    //        ▲                   ▲
-    //        │                   │
-    //     OUTPUT               INPUTS
-    // (Response / HTTP 200)   (Path Variable & Request Body)
     @Transactional
     public UserDTO update(Long id, UserUpdateDTO dto) {
 
@@ -285,6 +322,91 @@ public class UserService {
             repository.deleteById(id);
         } catch (DataIntegrityViolationException e) {
             throw new DatabaseException(e.getMessage());
+        }
+    }
+
+    // ========================================================================
+    // LOGGED USER WORKFLOWS (/users/me)
+    // ========================================================================
+
+    /*
+     * END-TO-END DATA FLOW (GET CURRENTLY AUTHENTICATED USER):
+     *
+     * [ Client / Front-end ]
+     *        │
+     *        │ 1. Sends HTTP GET /users/me with Bearer Token Header
+     *        ▼
+     *  SecurityContextHolder
+     *        │
+     *        │ 2. Extracts authenticated user's email (Principal Subject)
+     *        ▼
+     *  UserRepository.findByEmail(email)
+     *        │
+     *        │ 3. Fetches target User entity from database
+     *        ▼
+     *     UserDTO (Output / Return)
+     *        │
+     *        │ 4. Converted via mapper and returned as HTTP 200 OK
+     *        ▼
+     * [ Client / Front-end ]
+     */
+    @Transactional(readOnly = true)
+    public UserDTO getMe() {
+        /*
+         * STEP 1: Inspect the SecurityContextHolder populated by JwtAuthenticationFilter
+         * to extract the authenticated username/email safely.
+         */
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        /*
+         * STEP 2: Retrieve the corresponding User entity from DB or throw domain exception.
+         * Uses Spring Data JPA standard method: findByEmail(email)
+         */
+        User entity = repository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
+
+        /*
+         * STEP 3: Map entity to clean output UserDTO payload (omitting password hash).
+         */
+        return mapper.toDTO(entity);
+    }
+
+    /*
+     * Updates profile details (Name, Email, Phone) of the currently logged-in user.
+     * Prevents modifying other users' resources by binding identity directly to the JWT token context.
+     */
+    @Transactional
+    public UserDTO updateMe(UserUpdateDTO dto) {
+        try {
+            /*
+             * STEP 1: Extract authenticated user email from SecurityContextHolder.
+             */
+            String email = SecurityContextHolder.getContext().getAuthentication().getName();
+
+            /*
+             * STEP 2: Fetch target managed entity from DB using findByEmail(email).
+             */
+            User entity = repository.findByEmail(email)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
+
+            /*
+             * STEP 3: Copy validated fields from DTO to managed entity.
+             */
+            mapper.updateEntityFromDTO(dto, entity);
+
+            /*
+             * STEP 4: Persist changes and flush updates to DB.
+             */
+            entity = repository.save(entity);
+
+            /*
+             * STEP 5: Convert and return updated UserDTO.
+             */
+            return mapper.toDTO(entity);
+
+        } catch (DataIntegrityViolationException e) {
+            // Intercepts email duplicate constraints if user changes email to an already registered one
+            throw new DatabaseException("Email already exists: " + dto.getEmail());
         }
     }
 }

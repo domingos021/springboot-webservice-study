@@ -44,11 +44,13 @@ import java.util.List;
  *
  * Useful Commands:
  * - Run application via terminal: mvn spring-boot:run
- * - Test endpoint (Find All): GET <a href="http://localhost:8080/users">all</a>
- * - Test endpoint (Find by ID): GET <a href="http://localhost:8080/users/1">searching by id</a>
- * - Test endpoint (Insert): POST <a href="http://localhost:8080/users">creating a new user</a>
- * - Test endpoint (Update): PUT <a href="http://localhost:8080/users/1">updating an existing user</a>
- * - Test endpoint (Delete): DELETE <a href="http://localhost:8080/users/1">deleting user by id</a>
+ * - Test endpoint (Get Profile - LOGGED USER): GET <a href="http://localhost:8080/users/me">me</a>
+ * - Test endpoint (Update Profile - LOGGED USER): PUT <a href="http://localhost:8080/users/me">updating own user</a>
+ * - Test endpoint (Find All - ADMIN): GET <a href="http://localhost:8080/users">all</a>
+ * - Test endpoint (Find by ID - ADMIN): GET <a href="http://localhost:8080/users/1">searching by id</a>
+ * - Test endpoint (Insert - PUBLIC/ADMIN): POST <a href="http://localhost:8080/users">creating a new user</a>
+ * - Test endpoint (Update - ADMIN): PUT <a href="http://localhost:8080/users/1">updating an existing user</a>
+ * - Test endpoint (Delete - ADMIN): DELETE <a href="http://localhost:8080/users/1">deleting user by id</a>
  */
 @RestController // Semantic annotation indicating this class handles HTTP requests and produces JSON/XML responses.
 @RequestMapping(value = "/users")
@@ -90,7 +92,52 @@ public class UserController {
     }
 
     // ========================================================================
-    //mvn spring-boot:run
+    // LOGGED USER ENDPOINTS (/users/me)
+    // ========================================================================
+
+    // ========================================================================
+    // ENDPOINT: Get Current Authenticated User Profile
+    // HTTP Method: GET
+    // URL Example: http://localhost:8080/users/me
+    // Status Code: 200 OK
+    // ========================================================================
+    @GetMapping("/me")
+    public ResponseEntity<UserDTO> getMe() {
+        /*
+         * Extract identity directly from JWT context inside SecurityContextHolder.
+         * Ensures users can only access their own profile without relying on URL path variables.
+         *
+         * Request flow:
+         * 1. JwtAuthenticationFilter validates Bearer Token and extracts username/email.
+         * 2. Controller delegates to service.getMe().
+         * 3. Service retrieves authenticated User entity and returns safe UserDTO.
+         */
+        UserDTO dto = service.getMe();
+        return ResponseEntity.ok().body(dto);
+    }
+
+    // ========================================================================
+    // ENDPOINT: Update Current Authenticated User Profile
+    // HTTP Method: PUT
+    // URL Example: http://localhost:8080/users/me
+    // Status Code: 200 OK
+    // ========================================================================
+    @PutMapping("/me")
+    public ResponseEntity<UserDTO> updateMe(@Valid @RequestBody UserUpdateDTO dto) {
+        /*
+         * @Valid: Triggers Bean Validation rules defined inside UserUpdateDTO.
+         * Updates profile details (Name, Email, Phone) of the currently authenticated user.
+         */
+        UserDTO updatedDto = service.updateMe(dto);
+        return ResponseEntity.ok().body(updatedDto);
+    }
+
+    // ========================================================================
+    // GENERAL / ADMINISTRATIVE ENDPOINTS
+    // ========================================================================
+
+    // ========================================================================
+    // mvn spring-boot:run
     // ENDPOINT: Find All Users
     // HTTP Method: GET
     // URL Example: http://localhost:8080/users
@@ -176,7 +223,6 @@ public class UserController {
          */
         UserDTO newDto = service.insert(dto);
 
-
         /*
          * Creates the URI of the newly created resource.
          *
@@ -219,12 +265,11 @@ public class UserController {
          * This URI will be used in the HTTP Location header to indicate
          * where the newly created resource can be accessed.
          */
-        //HEADER RESPONSE
+        // HEADER RESPONSE
         URI uri = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
                 .buildAndExpand(newDto.getId())
                 .toUri(); // converts to an object of URI TYPE
-
 
         /*
          * ResponseEntity.created(uri):
@@ -337,6 +382,8 @@ public class UserController {
 
  HTTP Method   Endpoint       Controller Method    Service Method    HTTP Status Code
  -----------   ------------   -----------------    --------------    ----------------
+ GET           /users/me      getMe()              getMe()           200 OK
+ PUT           /users/me      updateMe(dto)        updateMe(dto)     200 OK
  GET           /users         findAll()            findAll()         200 OK
  GET           /users/{id}    findById(id)         findById(id)      200 OK (or 404)
  POST          /users         insert(dto)          insert(dto)       201 Created

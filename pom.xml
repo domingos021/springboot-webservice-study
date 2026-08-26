@@ -43,10 +43,21 @@
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
 		</dependency>
 
-		<!-- Módulo de Criptografia do Spring Security (Apenas utilitários como BCryptPasswordEncoder, sem bloquear rotas HTTP) -->
+		<!-- ================================================================= -->
+		<!-- SPRING SECURITY & JWT DEPENDENCIES                                -->
+		<!-- ================================================================= -->
+
+		<!-- Módulo Completo do Spring Security (Autenticação, Autorização e Filtros HTTP) -->
 		<dependency>
-			<groupId>org.springframework.security</groupId>
-			<artifactId>spring-security-crypto</artifactId>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+
+		<!-- Biblioteca Auth0 Java-JWT (Geração, assinatura e validação de Tokens JWT) -->
+		<dependency>
+			<groupId>com.auth0</groupId>
+			<artifactId>java-jwt</artifactId>
+			<version>4.4.0</version>
 		</dependency>
 
 		<!-- Driver do Banco H2 (Sem escopo runtime para permitir importar WebServlet no código) -->

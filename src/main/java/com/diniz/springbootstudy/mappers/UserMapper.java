@@ -4,6 +4,7 @@ import com.diniz.springbootstudy.dto.UserDTO;
 import com.diniz.springbootstudy.dto.UserInsertDTO;
 import com.diniz.springbootstudy.dto.UserUpdateDTO;
 import com.diniz.springbootstudy.entities.User;
+import com.diniz.springbootstudy.entities.enums.UserRole;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -26,6 +27,7 @@ import java.util.Optional;
 // ✔ Convert Insert DTO -> Entity for database insertion.
 // ✔ Copy Update DTO data into an existing managed Entity.
 // ✔ Encrypt raw passwords before persistence.
+// ✔ Assign default user roles during creation.
 //
 // Non-Responsibilities:
 // ✘ Persist entities.
@@ -49,7 +51,7 @@ import java.util.Optional;
 //                    ▼
 //              UserMapper
 //                    │
-//                    ├── BCrypt Password Hashing
+//                    ├── BCrypt Password Hashing & Role Assignment
 //                    ▼
 //               User Entity
 //                    │
@@ -174,7 +176,7 @@ public class UserMapper {
     public UserDTO toDTO(User entity) {
         // Optional handles the null check (replacing traditional 'if'), verifying if the entity is present.
         return Optional.ofNullable(entity)
-                //LAMBDA EXPRESSION
+                // LAMBDA EXPRESSION
                 // If present, maps the entity by instantiating a new UserDTO and passing entity fields as constructor arguments.
                 .map(e -> new UserDTO(e.getId(), e.getName(), e.getEmail(), e.getPhone()))
                 // If the entity is null, returns null.
@@ -205,15 +207,16 @@ public class UserMapper {
     // Purpose:
     // Creates a brand-new User entity from an insertion request.
     //
-    // Extra Responsibility:
-    // Encrypt the raw password before the entity reaches the repository.
+    // Extra Responsibilities:
+    // 1. Encrypt raw password via BCrypt.
+    // 2. Assign default UserRole.CLIENT authority level.
     //
     // Flow:
     //
     //      UserInsertDTO
     //            │
     //            ▼
-    //      passwordEncoder.encode()
+    //      passwordEncoder.encode() + setRole(CLIENT)
     //            │
     //            ▼
     //        User Entity
@@ -232,7 +235,7 @@ public class UserMapper {
      *      │
      * [Service Layer]   ──> Calls mapper: mapper.toEntity(dto)
      *      │
-     *  (Entity: User)   ──> Holds hashed password and business state
+     *  (Entity: User)   ──> Holds hashed password, default UserRole, and business state
      *      │
      *  [Database]       ──> Persists secure record
      * </pre>
@@ -247,20 +250,15 @@ public class UserMapper {
      * <p>
      * The password received from the client is NEVER stored in plain text.
      * Before assigning it to the entity, it is transformed into an irreversible
-     * BCrypt hash.
+     * BCrypt hash. Assigns default UserRole.CLIENT if none specified.
      *
      * @param dto Incoming creation request.
      * @return New User entity ready for persistence, or null if dto is null.
      */
-
-    /*
-     * The toEntity method converts a UserInsertDTO object into a User entity.
-     */
-
     public User toEntity(UserInsertDTO dto) {
         // Optional handles the null check (replacing traditional 'if'), verifying if the incoming DTO is present.
         return Optional.ofNullable(dto)
-                // If present, maps the DTO into a new User entity, populating fields and hashing the raw password via Bcrypt.
+                // If present, maps the DTO into a new User entity, populating fields and hashing the raw password via BCrypt.
                 .map(d -> {
                     /*
                      * Here we instantiate a new User entity object and populate its fields
@@ -276,9 +274,14 @@ public class UserMapper {
                     /*
                      * UserInsertDTO receives the raw plain-text password from the client.
                      * The Mapper intercepts it, passes it through the PasswordEncoder bean,
-                     * and assigns the resulting secure Bcrypt hash to the entity.
+                     * and assigns the resulting secure BCrypt hash to the entity.
                      */
                     entity.setPassword(passwordEncoder.encode(d.getPassword()));
+
+                    /*
+                     * Assigns default authority level (CLIENT) for new user registrations.
+                     */
+                    entity.setRole(UserRole.CLIENT);
 
                     // Finally, returns the fully populated, secure entity ready for database persistence.
                     return entity;
@@ -286,6 +289,7 @@ public class UserMapper {
                 // If the DTO is null, returns null.
                 .orElse(null);
     }
+
     // ------------------------------------------------------------------------
     // UPDATE DTO -> EXISTING ENTITY
     // ------------------------------------------------------------------------
