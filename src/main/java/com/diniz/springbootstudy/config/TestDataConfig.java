@@ -156,9 +156,16 @@ public class TestDataConfig implements CommandLineRunner {
                 "Domingos Dinis",
                 "Domingos@yahoo.com",
                 "61984615325",
-                passwordEncoder.encode("Senha123!"),
+                passwordEncoder.encode("Matrix21!!"),
                 UserRole.ADMIN
         );
+
+        /*
+        {
+          "email": "Domingos@yahoo.com",
+          "password": "Matrix21!!"
+        }
+         */
 
         // User 2: CLIENT
         User u2 = new User(
@@ -170,6 +177,14 @@ public class TestDataConfig implements CommandLineRunner {
                 UserRole.CLIENT
         );
 
+        /*
+        {
+          "email": "Maria@yahoo.com",
+          "password": "Senha123!"
+        }
+         */
+
+        // User 3: CLIENT
         User u3 = new User(
                 null,
                 "Carlos Santos",
@@ -179,6 +194,14 @@ public class TestDataConfig implements CommandLineRunner {
                 UserRole.CLIENT
         );
 
+        /*
+        {
+          "email": "Carlos@yahoo.com",
+          "password": "Senha123!"
+        }
+         */
+
+        // User 4: CLIENT
         User u4 = new User(
                 null,
                 "Ana Oliveira",
@@ -188,6 +211,14 @@ public class TestDataConfig implements CommandLineRunner {
                 UserRole.CLIENT
         );
 
+        /*
+        {
+          "email": "Ana@yahoo.com",
+          "password": "Senha123!"
+        }
+         */
+
+        // User 5: CLIENT
         User u5 = new User(
                 null,
                 "João Pereira",
@@ -197,6 +228,14 @@ public class TestDataConfig implements CommandLineRunner {
                 UserRole.CLIENT
         );
 
+        /*
+        {
+          "email": "Joao@yahoo.com",
+          "password": "Senha123!"
+        }
+         */
+
+        // User 6: CLIENT
         User u6 = new User(
                 null,
                 "Fernanda Costa",
@@ -206,6 +245,14 @@ public class TestDataConfig implements CommandLineRunner {
                 UserRole.CLIENT
         );
 
+        /*
+        {
+          "email": "Fernanda@yahoo.com",
+          "password": "Senha123!"
+        }
+         */
+
+        // User 7: CLIENT
         User u7 = new User(
                 null,
                 "Ricardo Almeida",
@@ -215,6 +262,14 @@ public class TestDataConfig implements CommandLineRunner {
                 UserRole.CLIENT
         );
 
+        /*
+        {
+          "email": "Ricardo@yahoo.com",
+          "password": "Senha123!"
+        }
+         */
+
+        // User 8: CLIENT
         User u8 = new User(
                 null,
                 "Juliana Martins",
@@ -223,6 +278,13 @@ public class TestDataConfig implements CommandLineRunner {
                 passwordEncoder.encode("Senha123!"),
                 UserRole.CLIENT
         );
+
+        /*
+        {
+          "email": "Juliana@yahoo.com",
+          "password": "Senha123!"
+        }
+         */
 
         // Saving mock users into the database
         userRepository.saveAll(Arrays.asList(u1, u2, u3, u4, u5, u6, u7, u8));
@@ -327,3 +389,16 @@ public class TestDataConfig implements CommandLineRunner {
         // ====================================================================
     }
 }
+
+
+/*
+const jsonData = pm.response.json();
+
+console.log("Resposta completa:");
+console.log(jsonData);
+
+pm.environment.set("token", jsonData.LoginResponseDTO.token);
+
+console.log("Token salvo:");
+console.log(jsonData.LoginResponseDTO.token);
+ */

@@ -20,6 +20,9 @@ import java.util.List;
  * REST Controller: Resource Layer
  *
  * Responsible for exposing the HTTP endpoints related to Order01.
+ * Enforces real-world e-commerce security standards:
+ * - ADMIN profile can inspect all orders across the entire application.
+ * - CLIENT profile can inspect and query ONLY their own order history.
  */
 @RestController
 @RequestMapping(value = "/orders01")
@@ -36,25 +39,51 @@ public class OrderController01 {
     }
 
     // =========================================================================
-    // ENDPOINT: Find All Order01 Records
+    // ENDPOINT: Find All Order01 Records (ADMIN ONLY)
     // HTTP Method: GET
     // URL Example: http://localhost:8080/orders01
     // =========================================================================
 
     @GetMapping
     public ResponseEntity<List<OrderDTO01>> findAll() {
+        /*
+         * Restricted to users with ROLE_ADMIN authority.
+         * Returns global sales history across all system users.
+         */
         List<OrderDTO01> list = service.findAll();
         return ResponseEntity.ok().body(list);
     }
 
     // =========================================================================
-    // ENDPOINT: Find Order01 by ID
+    // ENDPOINT: Find Authenticated User Orders (LOGGED CLIENT PROFILE)
+    // HTTP Method: GET
+    // URL Example: http://localhost:8080/orders01/me
+    // =========================================================================
+
+    @GetMapping("/me")
+    public ResponseEntity<List<OrderDTO01>> findMyOrders() {
+        /*
+         * Accessible by any authenticated user.
+         * Extracts identity directly from JWT context and returns ONLY their orders.
+         */
+        List<OrderDTO01> list = service.findMyOrders();
+        return ResponseEntity.ok().body(list);
+    }
+
+    // =========================================================================
+    // ENDPOINT: Find Order01 by ID (ADMIN OR OWNER)
     // HTTP Method: GET
     // URL Example: http://localhost:8080/orders01/1
     // =========================================================================
 
     @GetMapping("/{id}")
     public ResponseEntity<OrderDTO01> findById(@PathVariable Long id) {
+        /*
+         * Accessible by authenticated users.
+         * Ownership validation occurs in Service Layer:
+         * - ADMIN can view any order.
+         * - CLIENT can view only if order.client.id == loggedUser.id.
+         */
         OrderDTO01 dto = service.findById(id);
         return ResponseEntity.ok().body(dto);
     }
@@ -67,6 +96,9 @@ public class OrderController01 {
 
     @PostMapping
     public ResponseEntity<OrderDTO01> insert(@Valid @RequestBody OrderDTO01 dto) {
+        /*
+         * Automatically links the newly created order to the authenticated user.
+         */
         dto = service.insert(dto);
 
         URI uri = ServletUriComponentsBuilder

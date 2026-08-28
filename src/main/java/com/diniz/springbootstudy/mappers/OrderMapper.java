@@ -12,7 +12,17 @@ import java.util.stream.Collectors;
 // ============================================================================
 // MAPPER LAYER - DATA CONVERSION FOR ORDER
 // ============================================================================
+// Responsibilities:
+// - Transforms domain entities (Order01) into Data Transfer Objects (OrderDTO01).
+// - Transforms Data Transfer Objects (OrderDTO01) into domain entities (Order01).
+// - Encapsulates mapping logic between nested objects (User, OrderItem, Payment).
+// - Decouples domain entities from HTTP presentation and controller layers.
+// ============================================================================
 
+/**
+ * Spring Component responsible for mapping between {@link Order01} JPA entities
+ * and {@link OrderDTO01} Data Transfer Objects.
+ */
 @Component
 public class OrderMapper {
 
@@ -20,6 +30,9 @@ public class OrderMapper {
     private final OrderItemMapper orderItemMapper;
     private final PaymentMapper paymentMapper;
 
+    /**
+     * Dependency injection via constructor.
+     */
     public OrderMapper(UserMapper userMapper, OrderItemMapper orderItemMapper, PaymentMapper paymentMapper) {
         this.userMapper = userMapper;
         this.orderItemMapper = orderItemMapper;

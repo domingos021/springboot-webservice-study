@@ -11,6 +11,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -46,7 +47,7 @@ public class User implements Serializable, UserDetails {
      * Persistent UserRole enum field stored as String in database.
      */
     @Enumerated(EnumType.STRING)
-    private UserRole role;
+    private UserRole role; // Type of user(client/admin)
 
     @OneToMany(mappedBy = "client")
     private List<Order> orders = new ArrayList<>();
@@ -71,14 +72,28 @@ public class User implements Serializable, UserDetails {
      * If ADMIN, assigns both ROLE_ADMIN and ROLE_CLIENT authorities.
      * If CLIENT, assigns only ROLE_CLIENT authority.
      */
+
+    /*
+     * Retorna as permissões (authorities) do usuário para controle de acesso do Spring Security.
+     * Se for ADMIN, concede acesso total (ROLE_ADMIN e ROLE_CLIENT). Se for CLIENT, apenas ROLE_CLIENT.
+     */
+    /*
+     * the name of this method: getAuthorities()
+     * GrantedAuthority: Interface do Spring Security que representa uma permissão ou papel (Role)
+     * concedido ao usuário. O Spring a utiliza para autorizar o acesso às rotas da API
+     * (ex: .hasRole("ADMIN") busca por "ROLE_ADMIN").
+     */
     @Override
+    @NonNull
     public Collection<? extends GrantedAuthority> getAuthorities() {
         if (this.role == UserRole.ADMIN) {
+            //if admin
             return List.of(
                     new SimpleGrantedAuthority("ROLE_ADMIN"),
                     new SimpleGrantedAuthority("ROLE_CLIENT")
             );
         }
+        //if client
         return List.of(new SimpleGrantedAuthority("ROLE_CLIENT"));
     }
 
@@ -86,10 +101,26 @@ public class User implements Serializable, UserDetails {
      * Uses email as the principal username for authentication.
      */
     @Override
+    @NonNull
     public String getUsername() {
         return this.email;
     }
 
+    /*
+     * ====================================================================================
+     * NOTA SOBRE MÉTODOS DE STATUS DA CONTA (DELEÇÃO / REMOÇÃO DE OVERRIDE):
+     * ====================================================================================
+     * Os métodos a seguir (isAccountNonExpired, isAccountNonLocked, isCredentialsNonExpired,
+     * e isEnabled) foram comentados/removidos pois a interface UserDetails do Spring Security 6+
+     * já possui implementações 'default' que retornam 'true' automaticamente.
+     *
+     * Mantê-los reescritos apenas para retornar 'true' gerava avisos de código redundante na IDE
+     * (RedundantMethodOverride). Ao não sobrescrevê-los, seguimos a boa prática do Spring Security,
+     * mantendo o código mais limpo (DRY) e deixando a interface pai gerenciar o comportamento padrão.
+     * ====================================================================================
+     */
+
+    /*
     @Override
     public boolean isAccountNonExpired() {
         return true;
@@ -109,6 +140,7 @@ public class User implements Serializable, UserDetails {
     public boolean isEnabled() {
         return true;
     }
+    */
 
     // ========================================================================
     // GETTERS AND SETTERS

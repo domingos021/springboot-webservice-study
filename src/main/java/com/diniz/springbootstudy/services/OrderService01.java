@@ -7,9 +7,13 @@ import com.diniz.springbootstudy.mappers.OrderMapper;
 import com.diniz.springbootstudy.repositories.OrderRepository01;
 import com.diniz.springbootstudy.repositories.UserRepository;
 import com.diniz.springbootstudy.services.exceptions.DatabaseException;
+import com.diniz.springbootstudy.services.exceptions.ForbiddenException;
 import com.diniz.springbootstudy.services.exceptions.ResourceNotFoundException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,8 +37,8 @@ import java.util.List;
 
 /**
  * Service Layer component registered as a Spring Bean.
- * Encapsulates business rules, transaction boundaries, and orchestration
- * between Repositories and Mappers for Order operations.
+ * Encapsulates business rules, transaction boundaries, domain security validation,
+ * and orchestration between Repositories and Mappers for Order operations.
  */
 @Service
 public class OrderService01 {
@@ -57,7 +61,7 @@ public class OrderService01 {
     // ========================================================================
 
     /**
-     * Retrieves all orders from the database.
+     * Retrieves all system orders from the database (ADMIN RESTRICTED).
      * Uses readOnly = true to optimize Hibernate performance by disabling dirty checking.
      */
     @Transactional(readOnly = true)
@@ -69,8 +73,25 @@ public class OrderService01 {
     }
 
     /**
+     * Retrieves orders placed exclusively by the currently authenticated user (CLIENT).
+     */
+    @Transactional(readOnly = true)
+    public List<OrderDTO01> findMyOrders() {
+        User authenticatedUser = getAuthenticatedUser();
+        List<Order01> list = repository.findByClientId(authenticatedUser.getId());
+        return list.stream()
+                .map(mapper::toDTO)
+                .toList();
+    }
+
+    /**
      * Finds an order by its unique identifier.
+     * Enforces real-world ownership validation:
+     * - ADMIN can inspect any order.
+     * - CLIENT can inspect ONLY their own order.
+     *
      * Throws ResourceNotFoundException if the record is missing.
+     * Throws ForbiddenException if a CLIENT attempts to access another user's order.
      */
     @Transactional(readOnly = true)
     public OrderDTO01 findById(Long id) {
@@ -78,8 +99,15 @@ public class OrderService01 {
          * Queries the database for an Order01 entity by its ID.
          * If present, returns the entity; otherwise, throws a ResourceNotFoundException.
          */
-        Order01 entity = repository.findById(id)  // Fetches ONE Order01 entities from the database by Id
+        Order01 entity = repository.findById(id) // Fetches ONE Order01 entity from database by Id
                 .orElseThrow(() -> new ResourceNotFoundException(id));
+
+        /*
+         * Real-World Access Control Rule:
+         * Verifies if the authenticated user is the owner of the order or has ADMIN privileges.
+         */
+        User authenticatedUser = getAuthenticatedUser();
+        validateOrderOwnershipOrAdmin(entity, authenticatedUser);
 
         /*
          * Maps the retrieved entity to OrderDTO01 and returns it to the controller layer.
@@ -88,7 +116,7 @@ public class OrderService01 {
     }
 
     /**
-     * Creates and persists a new order in the database.
+     * Creates and persists a new order in the database attached to the authenticated client.
      */
     @Transactional
     public OrderDTO01 insert(OrderDTO01 dto) {
@@ -98,9 +126,10 @@ public class OrderService01 {
         Order01 entity = mapper.toEntity(dto);
 
         /*
-         * Attaches the associated client entity (User) retrieved from the database using the DTO's client ID.
+         * Attaches the currently authenticated user as the client owner of the order.
          */
-        attachClient(dto, entity);
+        User authenticatedUser = getAuthenticatedUser();
+        entity.setClient(authenticatedUser);
 
         /*
          * Persists the newly created Order01 entity into the database.
@@ -124,6 +153,12 @@ public class OrderService01 {
              * Obtains a lazy-loaded JPA entity proxy for performance optimization.
              */
             Order01 entity = repository.getReferenceById(id);
+
+            /*
+             * Validates access permissions before updating.
+             */
+            User authenticatedUser = getAuthenticatedUser();
+            validateOrderOwnershipOrAdmin(entity, authenticatedUser);
 
             /*
              * Copies updatable scalar attributes and attaches the client reference.
@@ -169,6 +204,51 @@ public class OrderService01 {
              * Translates database constraint violations into a domain-specific DatabaseException.
              */
             throw new DatabaseException(e.getMessage());
+        }
+    }
+
+    // ========================================================================
+    // PRIVATE HELPER & DOMAIN SECURITY METHODS
+    // ========================================================================
+
+    /**
+     * Safely extracts the currently authenticated User entity from Spring Security Context.
+     * Supports both direct domain User instances and Username/UserDetails principals.
+     */
+    private User getAuthenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new ForbiddenException("Access denied: No authenticated user context found.");
+        }
+
+        Object principal = authentication.getPrincipal();
+        String username;
+
+        if (principal instanceof User user) {
+            return user;
+        } else if (principal instanceof UserDetails userDetails) {
+            username = userDetails.getUsername();
+        } else {
+            username = principal.toString();
+        }
+
+        return userRepository.findByEmail(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found: " + username));
+    }
+
+    /**
+     * Domain Security Guard Clause:
+     * Ensures only the owner of the order or an ADMIN user can access order details.
+     */
+    private void validateOrderOwnershipOrAdmin(Order01 order, User authenticatedUser) {
+        boolean isAdmin = authenticatedUser.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
+
+        boolean isOwner = order.getClient() != null && order.getClient().getId().equals(authenticatedUser.getId());
+
+        if (!isAdmin && !isOwner) {
+            throw new ForbiddenException("Access denied: You do not have permission to access this order.");
         }
     }
 

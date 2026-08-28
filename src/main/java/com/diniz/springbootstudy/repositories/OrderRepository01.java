@@ -4,6 +4,8 @@ import com.diniz.springbootstudy.entities.Order01;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 // ============================================================================
 // DATA ACCESS LAYER ARCHITECTURE (Spring Data JPA)
 // ============================================================================
@@ -31,8 +33,8 @@ import org.springframework.stereotype.Repository;
 /**
  * Repository / Data Access Object (DAO) interface for the {@link Order01} entity.
  *
- * Extending JpaRepository automatically provides full CRUD capabilities
- * and pagination without needing to write SQL or explicit implementation classes.
+ * Extending JpaRepository automatically provides full CRUD capabilities,
+ * pagination, and custom query method generation without needing to write SQL.
  */
 @Repository
 // Indicates a Data Access component. Optional when extending JpaRepository,
@@ -60,13 +62,23 @@ public interface OrderRepository01 extends JpaRepository<Order01, Long> {
      *
      * - count()
      *      -> Executes: SELECT COUNT(*) FROM tb_order_01
-     *
-     * Custom Query Methods (Derived Queries / @Query) can be declared here
-     * if needed.
-     *
-     * Example:
-     * Optional<Order01> findById(Long id);
      */
+
+    // ========================================================================
+    // CUSTOM QUERY METHODS (Derived Queries)
+    // ========================================================================
+
+    /**
+     * Retrieves all orders placed by a specific user (client).
+     * <p>
+     * Spring Data JPA derived query execution:
+     * Translates 'findByClientId' into SQL:
+     * SELECT * FROM tb_order_01 WHERE client_id = ?
+     *
+     * @param clientId ID of the authenticated user (client).
+     * @return List of Order01 entities associated with the given client.
+     */
+    List<Order01> findByClientId(Long clientId);
 }
 
 /*
@@ -92,5 +104,4 @@ Bean Creation & Lifecycle:
 The generated implementation already knows how to communicate with
 Hibernate and execute SQL statements against the 'tb_order_01' table.
 ============================================================================
-
- */
+*/

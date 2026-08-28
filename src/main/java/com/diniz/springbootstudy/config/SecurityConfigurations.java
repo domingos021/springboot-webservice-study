@@ -21,6 +21,10 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 // session management policies, and password encoders.
 // ============================================================================
 
+/**
+ * Spring Security configuration bean responsible for defining HTTP authorization
+ * boundaries, stateless session management, CSRF protection, and JWT filter chain placement.
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfigurations {
@@ -35,10 +39,10 @@ public class SecurityConfigurations {
     }
 
     /**
-     * Configures the HTTP security filter chain.
+     * Configures the HTTP security filter chain and defines fine-grained access policies.
      *
      * Execution Flow:
-     * Disable CSRF ──> Set STATELESS Session ──> Define Authorization Rules ──> Add JWT Filter
+     * Disable CSRF ──> Disable Frame Options (H2) ──> Set STATELESS Session ──> Define Authorization Rules ──> Add JWT Filter
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -49,29 +53,58 @@ public class SecurityConfigurations {
                 .authorizeHttpRequests(authorize -> authorize
 
                         // ===================================================
-                        // PUBLIC ENDPOINTS (No authentication required)
+                        // 1. PUBLIC ENDPOINTS (No authentication required)
                         // ===================================================
-                        .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/auth/forgot-password").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/auth/reset-password").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/products/**").permitAll() // Public product showcase
-                        .requestMatchers("/h2-console/**").permitAll() // Access to H2 Database Web Console
+                        .requestMatchers(HttpMethod.POST, ApiRoutes.AUTH_LOGIN).permitAll()
+                        .requestMatchers(HttpMethod.POST, ApiRoutes.AUTH_FORGOT_PASSWORD).permitAll()
+                        .requestMatchers(HttpMethod.POST, ApiRoutes.AUTH_RESET_PASSWORD).permitAll()
+                        .requestMatchers(HttpMethod.POST, ApiRoutes.USERS_BASE).permitAll() // Public user self-registration
+                        .requestMatchers(HttpMethod.GET, ApiRoutes.PRODUCTS_WILDCARD).permitAll() // Public product catalog showcase
+                        .requestMatchers(HttpMethod.GET, ApiRoutes.CATEGORIES_WILDCARD).permitAll() // Public category catalog showcase
+                        .requestMatchers(ApiRoutes.H2_CONSOLE).permitAll() // Access to H2 Database Web Console
+                        .requestMatchers(ApiRoutes.TEST_RESET).permitAll() // Test environment database reset endpoint
 
                         // ===================================================
-                        // ADMIN RESTRICTED ENDPOINTS (Requires ROLE_ADMIN)
+                        // 2. SPECIFIC PRIVATE ENDPOINTS (LOGGED USER PROFILE)
+                        // CRITICAL: Evaluated before generic ADMIN boundaries to avoid path matching collision
                         // ===================================================
-                        .requestMatchers(HttpMethod.POST, "/products/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/products/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/products/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/users/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, ApiRoutes.USERS_ME).authenticated()
+                        .requestMatchers(HttpMethod.PUT, ApiRoutes.USERS_ME).authenticated()
+                        .requestMatchers(HttpMethod.GET, ApiRoutes.ORDERS_BASE + "/me").authenticated() // User personal orders (/orders01/me)
 
                         // ===================================================
-                        // PRIVATE ENDPOINTS (Requires valid Bearer JWT token)
+                        // 3. ADMIN RESTRICTED ENDPOINTS (Requires ROLE_ADMIN Authority)
+                        // Real-world Rule: Full administrative control over users, catalogs & global orders
                         // ===================================================
-                        .requestMatchers(HttpMethod.POST, "/orders/**").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/orders/**").authenticated()
+                        .requestMatchers(ApiRoutes.ADMIN_BASE).hasAuthority("ROLE_ADMIN") // ProductAdminController (/admin/products)
 
-                        // Any other request must be authenticated
+                        // Product & Category Management Mutations (ADMIN Only)
+                        .requestMatchers(HttpMethod.POST, ApiRoutes.PRODUCTS_WILDCARD).hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(HttpMethod.PUT, ApiRoutes.PRODUCTS_WILDCARD).hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, ApiRoutes.PRODUCTS_WILDCARD).hasAuthority("ROLE_ADMIN")
+
+                        .requestMatchers(HttpMethod.POST, ApiRoutes.CATEGORIES_WILDCARD).hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(HttpMethod.PUT, ApiRoutes.CATEGORIES_WILDCARD).hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, ApiRoutes.CATEGORIES_WILDCARD).hasAuthority("ROLE_ADMIN")
+
+                        // User Administration (ADMIN Only)
+                        .requestMatchers(HttpMethod.GET, ApiRoutes.USERS_BASE).hasAuthority("ROLE_ADMIN") // List all system users
+                        .requestMatchers(HttpMethod.GET, ApiRoutes.USERS_WILDCARD).hasAuthority("ROLE_ADMIN") // Find user by ID
+                        .requestMatchers(HttpMethod.PUT, ApiRoutes.USERS_WILDCARD).hasAuthority("ROLE_ADMIN") // Update user by ID
+                        .requestMatchers(HttpMethod.DELETE, ApiRoutes.USERS_WILDCARD).hasAuthority("ROLE_ADMIN") // Delete user by ID
+
+                        // Order System-Wide Listing (ADMIN Only)
+                        // Restricts global order list so regular clients cannot inspect company sales
+                        .requestMatchers(HttpMethod.GET, ApiRoutes.ORDERS_BASE).hasAuthority("ROLE_ADMIN")
+
+                        // ===================================================
+                        // 4. PRIVATE ENDPOINTS (Requires valid Bearer JWT token)
+                        // Allows logged clients to interact with specific order operations
+                        // ===================================================
+                        .requestMatchers(HttpMethod.GET, ApiRoutes.ORDERS_BASE + "/*").authenticated() // Detailed order view (/orders01/{id})
+                        .requestMatchers(HttpMethod.POST, ApiRoutes.ORDERS_BASE).authenticated() // New order placement (/orders01)
+
+                        // Any other unmapped request must be authenticated
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
@@ -95,26 +128,21 @@ public class SecurityConfigurations {
     }
 }
 
+/*
+ * CHAVE DE TESTE POSTMAN (VAULT)
+ * badef917c56d1a3711a814389fdeeb39065e74981e06926569f35ee860944b2c
+ */
 
 /*
-  Client (Postman / Frontend)
-           │
-           │ 1. HTTP Request + Bearer JWT Token
-           ▼
- JwtAuthenticationFilter ──> Validates Token & Sets SecurityContextHolder
-           │
-           ▼
-    UserController       ──> Validates JSON DTOs (@Valid)
-           │
-           ▼
-     UserService         ──> Executes business rules & transactions
-           │
-           ▼
-     UserMapper          ──> Encrypts passwords (BCrypt) & converts DTO <-> Entity
-           │
-           ▼
-    UserRepository       ──> Handles SQL persistence via Spring Data JPA
-           │
-           ▼
-       Database
- */
++-------------------+--------------------+--------------------+
+| Recurso / Ação    | CLIENT (Cliente)   | ADMIN (Administrador)|
++-------------------+--------------------+--------------------+
+| Ver Produtos      | ✅ Permitido       | ✅ Permitido       |
+| Fazer Pedido      | ✅ Apenas o seu    | ✅ Permitido       |
+| Ver Meus Pedidos  | ✅ (/orders01/me)  | ✅ Permitido       |
+| Ver Todos Pedidos | ❌ 403 Forbidden   | ✅ (/orders01)     |
+| Listar Usuários   | ❌ 403 Forbidden   | ✅ (/users)        |
+| Deletar Usuários  | ❌ 403 Forbidden   | ✅ (/users/{id})   |
+| Criar Produtos    | ❌ 403 Forbidden   | ✅ (/products)     |
++-------------------+--------------------+--------------------+
+*/
