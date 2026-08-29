@@ -22,6 +22,7 @@ import java.io.IOException;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    // using two classes as attributes
     private final TokenService tokenService;
     private final UserRepository userRepository;
 

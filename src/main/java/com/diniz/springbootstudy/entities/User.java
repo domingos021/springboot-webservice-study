@@ -1,7 +1,6 @@
 package com.diniz.springbootstudy.entities;
 
 import com.diniz.springbootstudy.entities.enums.UserRole;
-import com.diniz.springbootstudy.entities.exemp.Order;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -22,6 +21,24 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+
+/*
+  Java (nativo)
+   │
+   ├── Object
+   ├── Serializable
+   └── outras classes/interfaces da JDK
+
+
+Spring Security (biblioteca externa)
+   │
+   └── UserDetails (interface)
+          │
+          ├── getUsername()
+          ├── getPassword()
+          ├── getAuthorities()
+          └── outros métodos
+ */
 
 @Entity
 @Table(name = "tb_user")
@@ -44,13 +61,14 @@ public class User implements Serializable, UserDetails {
     private String password;
 
     /*
-     * Persistent UserRole enum field stored as String in database.
+     * Persistent UserRole enum field stored as String in the database.
      */
     @Enumerated(EnumType.STRING)
-    private UserRole role; // Type of user(client/admin)
+    private UserRole role; // Defines the user type (CLIENT or ADMIN)
 
-    @OneToMany(mappedBy = "client")
-    private List<Order> orders = new ArrayList<>();
+
+    @OneToMany(mappedBy = "client") // the client has an order
+    private List<Order01> orders = new ArrayList<>();
 
     public User() {}
 
@@ -67,80 +85,88 @@ public class User implements Serializable, UserDetails {
     // SPRING SECURITY (UserDetails Contract Implementation)
     // ========================================================================
 
-    /*
-     * Converts UserRole enum into GrantedAuthority collections.
-     * If ADMIN, assigns both ROLE_ADMIN and ROLE_CLIENT authorities.
-     * If CLIENT, assigns only ROLE_CLIENT authority.
-     */
 
     /*
-     * Retorna as permissões (authorities) do usuário para controle de acesso do Spring Security.
-     * Se for ADMIN, concede acesso total (ROLE_ADMIN e ROLE_CLIENT). Se for CLIENT, apenas ROLE_CLIENT.
+     * Returns the authorities (roles/permissions) granted to the authenticated user.
+     *
+     * Method name:
+     * - getAuthorities() -> Returns all authorities associated with the current user.
+     *
+     * GrantedAuthority:
+     * - A Spring Security interface that represents a permission or role granted
+     *   to a user (e.g., ROLE_ADMIN, ROLE_CLIENT).
+     * - Spring Security uses these authorities to determine whether a user is
+     *   authorized to access protected resources (e.g., .hasRole("ADMIN")).
+     *
+     * Authorization flow:
+     *
+     * User logs in
+     *      │
+     *      ▼
+     * Spring calls getAuthorities()
+     *      │
+     *      ▼
+     * [ ROLE_ADMIN, ROLE_CLIENT ]
+     *      │
+     *      ▼
+     * Spring stores these authorities
+     *      │
+     *      ▼
+     * A protected route requires:
+     *      .hasRole("ADMIN")
+     *      │
+     *      ▼
+     * Does the user have ROLE_ADMIN?
+     *      │
+     *     Yes
+     *      │
+     *      ▼
+     * Access granted
+     *
+     * Business rule:
+     * - ADMIN users receive both ROLE_ADMIN and ROLE_CLIENT authorities,
+     *   allowing access to administrator and client resources.
+     * - CLIENT users receive only ROLE_CLIENT.
      */
-    /*
-     * the name of this method: getAuthorities()
-     * GrantedAuthority: Interface do Spring Security que representa uma permissão ou papel (Role)
-     * concedido ao usuário. O Spring a utiliza para autorizar o acesso às rotas da API
-     * (ex: .hasRole("ADMIN") busca por "ROLE_ADMIN").
-     */
-    @Override
-    @NonNull
+    @Override // Implements the method required by the UserDetails interface
+    @NonNull // Ensures that this method never returns null
     public Collection<? extends GrantedAuthority> getAuthorities() {
+
+        // Check if the user has the ADMIN role
         if (this.role == UserRole.ADMIN) {
-            //if admin
+
+            // Return all authorities granted to an administrator
             return List.of(
-                    new SimpleGrantedAuthority("ROLE_ADMIN"),
-                    new SimpleGrantedAuthority("ROLE_CLIENT")
+                    new SimpleGrantedAuthority("ROLE_ADMIN"), // Administrator authority
+                    new SimpleGrantedAuthority("ROLE_CLIENT") // Client authority inherited by admins
             );
         }
-        //if client
-        return List.of(new SimpleGrantedAuthority("ROLE_CLIENT"));
+
+        // Return only the authority granted to a regular client
+        return List.of(
+                new SimpleGrantedAuthority("ROLE_CLIENT")
+        );
     }
 
     /*
-     * Uses email as the principal username for authentication.
+     * Uses email as the username identifier for authentication.
+     *
+     * Spring Security calls this method to identify the authenticated user.
      */
     @Override
     @NonNull
+    /*
+     * getUsername() is a method defined by the Spring Security UserDetails interface.
+     *
+     * The User entity overrides this method to provide the username used during
+     * authentication.
+     *
+     * In this application, the email field from the local User entity is used
+     * as the username identifier.
+     */
     public String getUsername() {
         return this.email;
     }
-
-    /*
-     * ====================================================================================
-     * NOTA SOBRE MÉTODOS DE STATUS DA CONTA (DELEÇÃO / REMOÇÃO DE OVERRIDE):
-     * ====================================================================================
-     * Os métodos a seguir (isAccountNonExpired, isAccountNonLocked, isCredentialsNonExpired,
-     * e isEnabled) foram comentados/removidos pois a interface UserDetails do Spring Security 6+
-     * já possui implementações 'default' que retornam 'true' automaticamente.
-     *
-     * Mantê-los reescritos apenas para retornar 'true' gerava avisos de código redundante na IDE
-     * (RedundantMethodOverride). Ao não sobrescrevê-los, seguimos a boa prática do Spring Security,
-     * mantendo o código mais limpo (DRY) e deixando a interface pai gerenciar o comportamento padrão.
-     * ====================================================================================
-     */
-
-    /*
-    @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return true;
-    }
-    */
 
     // ========================================================================
     // GETTERS AND SETTERS
@@ -178,7 +204,32 @@ public class User implements Serializable, UserDetails {
         this.phone = phone;
     }
 
+    /*
+     * Overrides the getPassword() method defined in the UserDetails interface
+     * from Spring Security.
+     *
+     * The User entity implements UserDetails, so it must provide its own
+     * implementation of this method.
+     *
+     * Original method:
+     * - UserDetails interface -> String getPassword();
+     *
+     * This overridden method returns the password field stored in this User entity.
+     *
+     * Spring Security uses this method during authentication to retrieve the
+     * encrypted password from the database and compare it with the password
+     * provided by the user during login.
+     */
     @Override
+    /*
+     * getPassword() is a method defined by the Spring Security UserDetails interface.
+     *
+     * The User entity overrides this method to provide the password value required
+     * by Spring Security during authentication.
+     *
+     * This method returns the password field from the local User entity, which
+     * contains the encrypted password stored in the database.
+     */
     public String getPassword() {
         return password;
     }
@@ -195,7 +246,7 @@ public class User implements Serializable, UserDetails {
         this.role = role;
     }
 
-    public List<Order> getOrders() {
+    public List<Order01> getOrders() {
         return orders;
     }
 
@@ -212,3 +263,41 @@ public class User implements Serializable, UserDetails {
         return Objects.hash(id);
     }
 }
+
+
+/*
+ * Java (Programming Language + JDK)
+ *          │
+ *          ▼
+ * Spring Ecosystem
+ *          │
+ *          ├── Spring Framework
+ *          │       │
+ *          │       ├── Spring MVC
+ *          │       │       → Used to build web applications and REST APIs
+ *          │       │
+ *          │       ├── Spring Data JPA
+ *          │       │       → Simplifies database access using JPA repositories
+ *          │       │
+ *          │       ├── Spring Security
+ *          │       │       → Provides authentication and authorization features
+ *          │       │
+ *          │       └── Other Spring modules
+ *          │
+ *          ▼
+ * Spring Boot
+ *          │
+ *          └── Simplifies the configuration, dependency management, and
+ *              execution of Spring applications through auto-configuration.
+ *
+ *
+ * In this project, Spring Security was added through the dependency:
+ *
+ * <dependency>
+ *     <groupId>org.springframework.boot</groupId>
+ *     <artifactId>spring-boot-starter-security</artifactId>
+ * </dependency>
+ *
+ * This dependency provides the Spring Security modules required to implement
+ * authentication and authorization in the application.
+ */

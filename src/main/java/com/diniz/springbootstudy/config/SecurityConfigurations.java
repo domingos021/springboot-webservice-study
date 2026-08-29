@@ -146,3 +146,45 @@ public class SecurityConfigurations {
 | Criar Produtos    | ❌ 403 Forbidden   | ✅ (/products)     |
 +-------------------+--------------------+--------------------+
 */
+
+/*
+1. User (entidade)
+        |
+        | implements UserDetails
+        |
+        ▼
+
+2. AuthorizationService
+        |
+        | implements UserDetailsService
+        |
+        ▼
+
+3. AuthenticationController
+        |
+        | recebe email + senha
+        |
+        ▼
+
+4. AuthenticationManager
+        |
+        ▼
+
+5. PasswordEncoder
+        |
+        ▼
+
+6. TokenService (JWT criação)
+        |
+        ▼
+
+7. JwtAuthenticationFilter  ← agora
+        |
+        | valida o token recebido
+        |
+        ▼
+
+8. SecurityConfigurations
+        |
+        | configura o filtro dentro da cadeia
+ */
