@@ -402,3 +402,12 @@ pm.environment.set("token", jsonData.LoginResponseDTO.token);
 console.log("Token salvo:");
 console.log(jsonData.LoginResponseDTO.token);
  */
+
+/*
+{
+  "name": "Joao Oliveira",
+  "email": "joao.oliveira@yahoo.com",
+  "phone": "61987654321",
+  "password": "Senha456!"
+}
+ */
