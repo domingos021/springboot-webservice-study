@@ -29,15 +29,15 @@ public class PasswordResetToken implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id // Defines this field as the primary key of the entity
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // Automatically generates the ID value using the database auto-increment strategy
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true) // Defines a required column with unique values in the database
     private String token;
 
-    @OneToOne(targetEntity = User.class, fetch = FetchType.EAGER)
-    @JoinColumn(nullable = false, name = "user_id")
+    @OneToOne(targetEntity = User.class, fetch = FetchType.EAGER) // Defines a one-to-one relationship and loads the associated User immediately
+    @JoinColumn(nullable = false, name = "user_id") // Defines the foreign key column linking this entity to the User table
     private User user;
 
     @Column(nullable = false)

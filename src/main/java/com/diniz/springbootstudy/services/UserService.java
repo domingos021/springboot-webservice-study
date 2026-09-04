@@ -148,7 +148,7 @@ public class UserService {
     // BUSINESS LOGIC / SERVICE METHODS (ADMIN / GENERAL MANAGEMENT)
     // ========================================================================
 
-    @Transactional(readOnly = true)
+    @Transactional(readOnly = true) // Defines a read-only transaction, optimizing queries and preventing unnecessary database changes
     /*
      * Retrieves all users from the database and returns them as a List of UserDTO.
      * The UserDTO acts as an output filter, ensuring sensitive data (such as the password hash)

@@ -57,12 +57,14 @@ public class PasswordResetService {
     /**
      * Generates a temporary reset token and dispatches the recovery email.
      * If an existing token exists for the user, it is replaced.
+     * this method receives a ForgotPasswordDTO containing the user's email address from the client request through.
+     * controller
      */
     @Transactional
     public void createPasswordResetToken(ForgotPasswordDTO dto) {
 
         /*
-         * 1. Query database for existing user by email.
+         * 1. Query database for existing user by email(searches the email in the dto on database)
          * Throws ResourceNotFoundException if user is not found.
          */
         User user = userRepository.findUserByEmail(dto.email())
